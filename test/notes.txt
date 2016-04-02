@@ -1,0 +1,11 @@
+Been messing around with template matching. Could use multiple templates to
+capture various images of fish and eventually be able to place bounding boxes
+around every fish on the board. This wont however let us know where the
+keypoints are, or if a fishes mouth is open. We could try and only use opened
+mouth fishes as templates, but we risk the issue of thinking a fish mouth is
+open, when really it is not.
+
+We also need to think about delay. If we find the keypoint, it isnt going to
+move, but if we try and go to a fish with an open mouth, we would go there and
+it would already be gone. We should go after keypoints and camp there until
+there are no more fish.
