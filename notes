@@ -7,4 +7,6 @@ movement. In other words, if X needs to travel the furthest (twice as far as Y),
 then Y needs to only step every other step so that they reach their end position
 at the same time.
 
-2) Test
+3) Could use a violet (405nm) laser diode and glow in the dark painted carboard
+to test the accuracy of the arm algorithms. This would allow for repeateable
+tests, and cause no extra friction on the arm to skew results.
