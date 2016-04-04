@@ -6,3 +6,5 @@ together, we need to make it so both continue moving for the duration of
 movement. In other words, if X needs to travel the furthest (twice as far as Y), 
 then Y needs to only step every other step so that they reach their end position
 at the same time.
+
+2) Test
