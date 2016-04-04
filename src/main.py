@@ -6,9 +6,9 @@ import Tkinter as tk
 # servo_3 = forward/back (y) 1100-1700 PIN(4)
 # servo_4 = main rotation (x) 500-2100 PIN(5)
 ranges = {"X" : [500, 2100], "Y" : [1100, 1700], "Z" : [1000, 1600], "R" : [700, 2400]}
-SERVO_DEFAULT = {"X" : 1460, "Y" : 1700, "Z" : 1000, "R" : 1240}
+SERVO_DEFAULT = {"X" : 1460, "Y" : 1700, "Z" : 1000, "R" : 1490}
 HOME_STATE = (1460,1700,1000,1240)
-MOVE_SPEED = 20
+MOVE_SPEED = 10
 DEBUG = False
 
 class Servo(object):

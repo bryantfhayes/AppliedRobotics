@@ -25,7 +25,7 @@ Servo servo_r;
 int curr_x = 1460;
 int curr_y = 1700;
 int curr_z = 1000;
-int curr_r = 1240;
+int curr_r = 1490;
 
 void setup() {
   servo_x.attach(5);
@@ -76,7 +76,7 @@ void loop() {
           done[i] = 1;
         }
       }
-      if((done[0] == 1) && (done[1] == 1) && (done[2] == 1) && (done[3] == 1)){
+      if(done[0] && done[1] && done[2] && done[3]){
         // update current values
         curr_x = pos[0];
         curr_y = pos[1];
@@ -84,27 +84,23 @@ void loop() {
         curr_r = pos[3];
         break;
       }
-      delay(2);
+      delay(1);
     }
 
 /*
     if(curr_x != x){
-      setValue(servo_x, curr_x, x);
       curr_x = x;
       //servo_x.writeMicroseconds(x);
     }
     if(curr_y != y){
-      setValue(servo_y, curr_y, y);
       curr_y = y;
       //servo_y.writeMicroseconds(y);
     }
     if(curr_z != z){
-      setValue(servo_z, curr_z, z);
       curr_z = z;
       //servo_z.writeMicroseconds(z);
     }
     if(curr_r != r){
-      setValue(servo_r, curr_r, r);
       curr_r = r;
       //servo_r.writeMicroseconds(r);
     }
@@ -112,22 +108,6 @@ void loop() {
     // clear the string:
     inputString = "";
     stringComplete = false;
-  }
-  delay(5);
-}
-
-void setValue(Servo s, int curr, int val){
-  int pos = curr;
-  if (val > curr){
-    for (pos = curr; pos <= val; pos += 1){
-      s.writeMicroseconds(pos);
-      delay(1);
-    }
-  } else {
-    for (pos = curr; pos >= val; pos -= 1){
-      s.writeMicroseconds(pos);
-      delay(1);
-    }
   }
 }
 
