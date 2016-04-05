@@ -47,6 +47,19 @@ def cartesianToDegs(X, Y, Z):
   return (g, a, b)
 
 
+def gotoPt(X,Y,Z):
+  g,a,b = cartesianToDegs(X, Y, Z)
+  sx,sy,sz = convert(g,a,b)
+  msg = "{0},{1},{2},{3}\n".format(sx,sy,sz,1490)
+  ser.write(msg)
+
+def test2():
+  for x,y in [(-5,15),(-5,20),(5,20),(5,15),(-5,15)]:
+    print x,y
+    gotoPt(x,y,-6);
+    time.sleep(3)
+  gotoPt(0,20,0)
+
 def test():
   i = 0
   for y in xrange(10,27,4):
@@ -63,8 +76,10 @@ def test():
 port = '/dev/cu.usbmodem1411'
 ser = serial.Serial(port,115200,timeout=5)
 
-
-test()
+time.sleep(4)
+gotoPt(0,25,0)
+time.sleep(3)
+test2()
 time.sleep(5000)
 
 while True:
