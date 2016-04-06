@@ -14,12 +14,20 @@ def main():
     else:
         arm = SerialArm.SerialArm(14,15.5,'/dev/cu.usbmodem1411')
     while True:
-        arm.setPosition(0,10,15)
-        time.sleep(2.5)
-        arm.setPosition(13,20,-5)
-        time.sleep(2.5)
-        arm.setPosition(-13,20,-5)
-        time.sleep(2.5)
+        arm.setPosition(-10,10,0)
+        time.sleep(1)
+        arm.setPosition(-10,25,0)
+        time.sleep(1)
+        arm.setPosition(0,25,0)
+        time.sleep(1)
+        arm.setPosition(10,25,0)
+        time.sleep(1)
+        arm.setPosition(10,10,0)
+        time.sleep(1)
+        arm.setPosition(0,5,0)
+        time.sleep(1)
+        arm.setPosition(-10,10,0)
+        time.sleep(1)
 
 if __name__ == "__main__":
     main()

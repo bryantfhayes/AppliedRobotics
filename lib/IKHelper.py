@@ -5,17 +5,15 @@ X_MAX_PWM = 500
 X_MIN_PWM = 2100
 Y_MAX_PWM = 1700
 Y_MIN_PWM = 1100
-Z_MAX_PWM = 1000
-Z_MIN_PWM = 1600
+Z_MAX_PWM = 1600
+Z_MIN_PWM = 900
 
 X_MAX_ANGLE = 100
 X_MIN_ANGLE = -80
 Y_MAX_ANGLE = 185
 Y_MIN_ANGLE = 115
-Z_MAX_ANGLE_AT_MAX_Y = 80
-Z_MIN_ANGLE_AT_MAX_Y = 25
-Z_MAX_ANGLE_AT_MIN_Y = 145
-Z_MIN_ANGLE_AT_MIN_Y = 90
+Z_MAX_ANGLE = 70
+Z_MIN_ANGLE = 0
 
 class IKHelper():
   def __init__(self, tibia, femur):
@@ -26,10 +24,14 @@ class IKHelper():
     # Calculate joint angles for X and Y
     servo_x = interp(g,[X_MIN_ANGLE,X_MAX_ANGLE],[X_MIN_PWM,X_MAX_PWM])
     servo_y = interp(a,[Y_MIN_ANGLE,Y_MAX_ANGLE],[Y_MIN_PWM,Y_MAX_PWM])
-    # Calculate Z join angle by mapping servo ranges dependent on Y angle
-    beta_min = interp(servo_y,[Y_MIN_PWM,Y_MAX_PWM],[Z_MIN_ANGLE_AT_MIN_Y,Z_MIN_ANGLE_AT_MAX_Y])
-    beta_max = interp(servo_y,[Y_MIN_PWM,Y_MAX_PWM],[Z_MAX_ANGLE_AT_MIN_Y,Z_MAX_ANGLE_AT_MAX_Y])
-    servo_z = interp(b,[beta_min,beta_max],[Z_MIN_PWM,Z_MAX_PWM])
+    # Calculate current beta degrees due to mechanical structure
+    a2 = a - 90
+    b2 = 180 - a2
+    # Calculate how much more beta axis needs to rotate where delta_b is degrees
+    # servo needs to rotate.
+    delta_b = b2 - b
+    # map servo_z rotation
+    servo_z = interp(delta_b,[Z_MIN_ANGLE,Z_MAX_ANGLE],[Z_MIN_PWM,Z_MAX_PWM])
     return (int(servo_x), int(servo_y), int(servo_z))
 
   def radsToDegs(self, x):
