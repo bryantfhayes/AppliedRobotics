@@ -25,6 +25,8 @@
 #include <unistd.h>
 #include <signal.h>
 #include <iostream>
+#include <sstream>
+#include <vector>
 
 #include "mraa.hpp"
 
@@ -44,6 +46,72 @@ sig_handler(int signo)
 int
 main()
 {
+//! [Interesting]
+    // If you have a valid platform configuration use numbers to represent uart
+    // device. If not use raw mode where std::string is taken as a constructor
+    // parameter
+    mraa::Uart* dev;
+    try {
+        dev = new mraa::Uart(0);
+    } catch (std::exception& e) {
+        std::cout << e.what() << ", likely invalid platform config" << std::endl;
+    }
+
+    try {
+        dev = new mraa::Uart("/dev/ttyMFD1");
+    } catch (std::exception& e) {
+        std::cout << "Error while setting up raw UART, do you have a uart?" << std::endl;
+        std::terminate();
+    }
+
+    if (dev->setBaudRate(115200) != 0) {
+        std::cout << "Error setting parity on UART" << std::endl;
+    }
+
+    if (dev->setMode(8, MRAA_UART_PARITY_NONE, 1) != 0) {
+        std::cout << "Error setting parity on UART" << std::endl;
+    }
+
+    if (dev->setFlowcontrol(false, false) != 0) {
+        std::cout << "Error setting flow control UART" << std::endl;
+    }
+
+    dev->writeStr("Hello monkeys\n");
+    dev->writeStr("SECOND LINE\n");
+    //! [Interesting]
+while(1){
+    char command[16];
+    while(1){
+	char buffer[16];
+	char *buffer_ptr = buffer;
+	if(dev->dataAvailable()){
+		dev->read(command, 16); 
+		command[strlen(command)-1] = '\0';
+		break;
+	}
+    }
+	string str = string(command);
+	vector<int> vect;
+
+	stringstream ss(str);
+	int i;
+
+	while(ss >> i){
+		vect.push_back(i);
+		if(ss.peek() == ',')
+			ss.ignore();
+	}
+	for(int i = 0; i < vect.size(); i++){
+		cout << vect.at(i) << endl;
+	}
+
+}
+    delete dev;
+
+
+
+
+
     signal(SIGINT, sig_handler);
     //! [Interesting]
     mraa::Pwm* pwm1;
