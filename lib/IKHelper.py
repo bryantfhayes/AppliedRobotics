@@ -1,20 +1,35 @@
 from numpy import interp
 import math
 
+X_MAX_PWM = 500
+X_MIN_PWM = 2100
+Y_MAX_PWM = 1700
+Y_MIN_PWM = 1100
+Z_MAX_PWM = 1000
+Z_MIN_PWM = 1600
+
+X_MAX_ANGLE = 100
+X_MIN_ANGLE = -80
+Y_MAX_ANGLE = 185
+Y_MIN_ANGLE = 115
+Z_MAX_ANGLE_AT_MAX_Y = 80
+Z_MIN_ANGLE_AT_MAX_Y = 25
+Z_MAX_ANGLE_AT_MIN_Y = 145
+Z_MIN_ANGLE_AT_MIN_Y = 90
+
 class IKHelper():
   def __init__(self, tibia, femur):
     self.T = tibia
     self.F = femur
 
   def convert(self, g, a, b):
-    servo_x = interp(g,[-80,100],[2100,500])
-    #print "a = {}".format(a)
-    servo_y = interp(a,[110,190],[1100,1700])
-    #print "servo_y = {}".format(servo_y)
-    beta_min = interp(servo_y,[1100,1700],[95,10])
-    beta_max = interp(servo_y,[1100,1700],[170,85])
-    #print beta_min, beta_max
-    servo_z = interp(b,[beta_min,beta_max],[1600,1000])
+    # Calculate joint angles for X and Y
+    servo_x = interp(g,[X_MIN_ANGLE,X_MAX_ANGLE],[X_MIN_PWM,X_MAX_PWM])
+    servo_y = interp(a,[Y_MIN_ANGLE,Y_MAX_ANGLE],[Y_MIN_PWM,Y_MAX_PWM])
+    # Calculate Z join angle by mapping servo ranges dependent on Y angle
+    beta_min = interp(servo_y,[Y_MIN_PWM,Y_MAX_PWM],[Z_MIN_ANGLE_AT_MIN_Y,Z_MIN_ANGLE_AT_MAX_Y])
+    beta_max = interp(servo_y,[Y_MIN_PWM,Y_MAX_PWM],[Z_MAX_ANGLE_AT_MIN_Y,Z_MAX_ANGLE_AT_MAX_Y])
+    servo_z = interp(b,[beta_min,beta_max],[Z_MIN_PWM,Z_MAX_PWM])
     return (int(servo_x), int(servo_y), int(servo_z))
 
   def radsToDegs(self, x):

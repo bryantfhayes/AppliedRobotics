@@ -9,18 +9,17 @@ parser.add_argument("-t", "--testmode", help="Run without serial device attached
 args = parser.parse_args()
 
 def main():
-	if args.testmode:
-		arm = SerialArm.SerialArm(15.5, 14)
-	else:
-    arm = SerialArm.SerialArm(15.5,14,'/dev/cu.usbmodem1411')
-
-	while True:	
-		print "Enter XYZ Coordinates (ex. 10,10,10): "
-		coords = raw_input()
-		coords = coords.split(',')
-		coords = map(int, coords)
-		arm.setPosition(coords)
-		print arm.getPosition()
+    if args.testmode:
+        arm = SerialArm.SerialArm(14, 15.5)
+    else:
+        arm = SerialArm.SerialArm(14,15.5,'/dev/cu.usbmodem1411')
+    while True:
+        arm.setPosition(0,10,15)
+        time.sleep(2.5)
+        arm.setPosition(13,20,-5)
+        time.sleep(2.5)
+        arm.setPosition(-13,20,-5)
+        time.sleep(2.5)
 
 if __name__ == "__main__":
-	main()
+    main()
