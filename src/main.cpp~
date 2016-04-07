@@ -103,9 +103,6 @@ void getCommand(mraa::Uart* com, int servo_values[]){
         }
     }
 
-    // Return if running is FALSE
-    if(!running) return;
-
     fprintf(stdout, "Got a message: %s\n", command);
 
     // Analyze serial message
