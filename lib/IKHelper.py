@@ -1,17 +1,17 @@
 from numpy import interp
 import math
 
-X_MAX_PWM = 500
-X_MIN_PWM = 2100
-Y_MAX_PWM = 1700
-Y_MIN_PWM = 1100
-Z_MAX_PWM = 1600
-Z_MIN_PWM = 900
+X_MAX_PWM = 525
+X_MIN_PWM = 2000
+Y_MAX_PWM = 1600
+Y_MIN_PWM = 900
+Z_MAX_PWM = 1400
+Z_MIN_PWM = 800
 
-X_MAX_ANGLE = 100
-X_MIN_ANGLE = -80
+X_MAX_ANGLE = 90
+X_MIN_ANGLE = -90
 Y_MAX_ANGLE = 185
-Y_MIN_ANGLE = 115
+Y_MIN_ANGLE = 100
 Z_MAX_ANGLE = 70
 Z_MIN_ANGLE = 0
 
@@ -21,6 +21,7 @@ class IKHelper():
     self.F = femur
 
   def convert(self, g, a, b):
+    print g,a,b
     # Calculate joint angles for X and Y
     servo_x = interp(g,[X_MIN_ANGLE,X_MAX_ANGLE],[X_MIN_PWM,X_MAX_PWM])
     servo_y = interp(a,[Y_MIN_ANGLE,Y_MAX_ANGLE],[Y_MIN_PWM,Y_MAX_PWM])
@@ -32,13 +33,20 @@ class IKHelper():
     delta_b = b2 - b
     # map servo_z rotation
     servo_z = interp(delta_b,[Z_MIN_ANGLE,Z_MAX_ANGLE],[Z_MIN_PWM,Z_MAX_PWM])
-    return (int(servo_x), int(servo_y), int(servo_z))
+    servo_r = interp(g,[-90,90],[2100,600])
+    #servo_r = 1350
+
+    return (int(servo_x), int(servo_y), int(servo_z), int(servo_r))
 
   def radsToDegs(self, x):
     return x*(180/math.pi)
 
   def getGamma(self, X, Y, Z):
     g = math.atan2(X,Y)
+    #leftside = (18*math.cos(g) - (math.pow(math.pow(X**2+Y**2,0.5)+18,2)) + math.pow(math.pow(X**2+Y**2,0.5),2))/(-2*(math.pow(X**2+Y**2,0.5)+18)*(math.pow(X**2+Y**2,0.5)))
+    #print leftside
+    #g2 = math.acos(leftside)
+    #g = g - g2
     return self.radsToDegs(g)
 
   def getAlpha(self, X, Y, Z):

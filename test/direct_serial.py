@@ -8,7 +8,7 @@ if len(sys.argv) < 2:
   exit()
 
 print "Initializing arm at: {}".format(sys.argv[1])
-arm = SerialArm.SerialArm(14, 15.5, sys.argv[1])
+arm = SerialArm.SerialArm(14, 15.5, SerialArm.Tool(0,0,0), port=sys.argv[1])
 
 while True:
   print "INPUT:"
