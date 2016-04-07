@@ -8,7 +8,7 @@
 */
 
 // servo_1 = rod rotation (r)  700-2400 PIN(2)
-// servo_2 = up/down (z)      1000-1600 PIN(3)
+// servo_2 = up/down (z)      900-1600 PIN(3)
 // servo_3 = forward/back (y) 1100-1700 PIN(4)
 // servo_4 = main rotation (x) 500-2100 PIN(5)
 
