@@ -15,7 +15,7 @@
 //
 #define TRUE 1
 #define FALSE 0
-#define SERIAL_PORT "/dev/ttyMFD1"
+#define SERIAL_PORT "/dev/ttyMFD2"
 #define NUM_SERVOS 4
 #define SERVO_PERIOD 20000
 #define DEFAULT_PWM 1426
@@ -102,6 +102,9 @@ void getCommand(mraa::Uart* com, int servo_values[]){
             break;
         }
     }
+
+    // Return if running is FALSE
+    if(!running) return;
 
     fprintf(stdout, "Got a message: %s\n", command);
 
