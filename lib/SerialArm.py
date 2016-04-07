@@ -26,7 +26,7 @@ class SerialArm(object):
   def send(self, msg):
       if self.port:
           self._ser.write(msg)
-      else self.wireless:
+      elif self.wireless:
           self.sock.sendto(msg, (UDP_IP, UDP_PORT))
 
   def updateArm(self):
