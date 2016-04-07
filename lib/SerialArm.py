@@ -1,4 +1,4 @@
-import IKHelper,serial,socket
+import IKHelper,serial,socket,math
 
 UDP_IP   = "edison.local"
 UDP_PORT = 21234 
@@ -21,7 +21,7 @@ class SerialArm(object):
       self._ser = serial.Serial(port,115200,timeout=5)
     elif self.wireless:
       self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    self.ik = IKHelper.IKHelper(tibia, femur)
+    self.ik = IKHelper.IKHelper(math.pow(((tibia+tool.y)**2)+(tool.z**2), 0.5), femur)
 
   def send(self, msg):
     if self.port:
@@ -41,8 +41,10 @@ class SerialArm(object):
   # Takes either a tuple (X, Y, Z) or individual X, Y, Z args
   def setPosition(self, X, Y=None, Z=None):
     if isinstance(X, tuple) or isinstance(X, list):
-      self.x, self.y, self.z, self.r = self.ik.getPWM(X[0] - self.tool.x, X[1] - self.tool.y, X[2] + self.tool.z - self.z_offset)
+      #self.x, self.y, self.z, self.r = self.ik.getPWM(X[0] - self.tool.x, X[1] - self.tool.y, X[2] + self.tool.z - self.z_offset)
+      self.x, self.y, self.z, self.r = self.ik.getPWM(X[0], X[1], X[2] - self.z_offset)
     else:
-      self.x, self.y, self.z, self.r = self.ik.getPWM(X - self.tool.x, Y - self.tool.y, Z + self.tool.z - self.z_offset)
+      #self.x, self.y, self.z, self.r = self.ik.getPWM(X - self.tool.x, Y - self.tool.y, Z + self.tool.z - self.z_offset)
+      self.x, self.y, self.z, self.r = self.ik.getPWM(X, Y, Z - self.z_offset)
     self.updateArm()
 

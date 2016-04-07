@@ -12,8 +12,8 @@ X_MAX_ANGLE = 90
 X_MIN_ANGLE = -90
 Y_MAX_ANGLE = 185
 Y_MIN_ANGLE = 100
-Z_MAX_ANGLE = 70
-Z_MIN_ANGLE = 0
+Z_MAX_ANGLE = 55
+Z_MIN_ANGLE = 25
 
 class IKHelper():
   def __init__(self, tibia, femur):
@@ -27,14 +27,17 @@ class IKHelper():
     servo_y = interp(a,[Y_MIN_ANGLE,Y_MAX_ANGLE],[Y_MIN_PWM,Y_MAX_PWM])
     # Calculate current beta degrees due to mechanical structure
     a2 = a - 90
+    #a3 = math.atan2(19,(15.5+18))
     b2 = 180 - a2
+    #print "ANGLE: {0}, Tibia Length: {2}".format(b2,self.T)
+    
     # Calculate how much more beta axis needs to rotate where delta_b is degrees
     # servo needs to rotate.
     delta_b = b2 - b
     # map servo_z rotation
     servo_z = interp(delta_b,[Z_MIN_ANGLE,Z_MAX_ANGLE],[Z_MIN_PWM,Z_MAX_PWM])
-    servo_r = interp(g,[-90,90],[2100,600])
-    #servo_r = 1350
+    #servo_r = interp(g,[-90,90],[2100,600])
+    servo_r = 1350
 
     return (int(servo_x), int(servo_y), int(servo_z), int(servo_r))
 

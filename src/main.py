@@ -1,4 +1,4 @@
-import sys, argparse, serial, syslog, time
+import math, sys, argparse, serial, syslog, time
 # Add reference to 'lib' folder
 sys.path.append('../lib')
 import SerialArm
