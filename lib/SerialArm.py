@@ -1,7 +1,7 @@
 import IKHelper,serial,socket,math
 
 UDP_IP   = "edison.local"
-UDP_PORT = 21234 
+UDP_PORT = 21224 
 
 class Tool(object):
   def __init__(self,x,y,z):
