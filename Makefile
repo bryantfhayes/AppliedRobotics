@@ -15,7 +15,7 @@ OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
 CFLAGS := -g # -Wall
 LIB := -lmraa
 LIBTEST := 
-INC := -I include
+INC := -I include -std=c++11
 
 $(TARGET): $(OBJECTS)
 	@echo " Linking..."

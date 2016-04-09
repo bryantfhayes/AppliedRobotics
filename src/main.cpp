@@ -9,6 +9,8 @@
 #include <sstream>
 #include <vector>
 #include "mraa.hpp"
+#include <string.h>
+#include "EdisonComm.h"
 
 //
 // DEFINES
@@ -20,20 +22,24 @@
 #define SERVO_PERIOD 20000
 #define DEFAULT_PWM 1426
 #define MSG_SIZE 32
+#define SERIAL_MODE 0
+#define WIRELESS_MODE 1
 
 
 //
 // GLOBAL VARIABLES
 //
 const int servo_pins[NUM_SERVOS] = {3,5,6,9};
-int running = TRUE;
+bool running = true;
+EdisonComm* com;
 
 using namespace std;
 
 void sig_handler(int signo) {
     if (signo == SIGINT) {
         printf("Shutting down cleanly...\n");
-        running = FALSE;
+        running = false;
+        com->running = false;
     }
 }
 
@@ -92,24 +98,17 @@ int setupPwm(mraa::Pwm* servos[]){
     return MRAA_SUCCESS;
 }
 
-void getCommand(mraa::Uart* com, int servo_values[]){
-    char command[MSG_SIZE];
+void getCommand(EdisonComm* com, int servo_values[]){
 
-    // Wait for message
-    while(running == TRUE){
-        if(com->dataAvailable()){
-            com->read(command, MSG_SIZE);
-            break;
-        }
-    }
+    com->readLine();
 
     // Return if running is FALSE
     if(!running) return;
 
-    fprintf(stdout, "Got a message: %s\n", command);
+    fprintf(stdout, "Got a message: %s\n", com->recvBuffer);
 
     // Analyze serial message
-    string commandStr = string(command);
+    string commandStr = string(com->recvBuffer);
     vector<int> pwms;
     stringstream ss(commandStr);
     int i;
@@ -134,16 +133,46 @@ void updateServos(mraa::Pwm* servos[], int servo_values[]){
     }
 }
 
+int setupEnvironment(int argc, char* argv[], int* mode){
+    // Example for reference: http://www.gnu.org/software/libc/manual/html_node/Example-of-Getopt.html#Example-of-Getopt
+    int index;
+    int c;
+
+    opterr = 0;
+    while ((c = getopt (argc, argv, "w")) != -1){
+        switch (c){
+          case 'w':
+            *mode = WIRELESS_MODE;
+            break;
+          case '?':
+            if (isprint (optopt))
+              fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+            else
+              fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
+            return 1;
+          default:
+            abort ();
+        }
+    }
+    return 0;
+}
+
+void setupComms(int mode){
+    com = EdisonComm::initComm(mode);
+}
+
 int main(int argc, char* argv[]) {
     // Variables
-    mraa::Uart* com;
-    mraa::Pwm* servos[NUM_SERVOS];
     int servo_values[NUM_SERVOS];
-
+    int mode = SERIAL_MODE; //DEFAULT
+    mraa::Pwm* servos[NUM_SERVOS];
+    
     // Setup
     setupInterrupts();
-    setupUart(&com);
+    setupEnvironment(argc, argv, &mode);
+    setupComms(mode);
     setupPwm(servos);
+
 
     // Main Loop
     while(running == TRUE){

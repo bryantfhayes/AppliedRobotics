@@ -13,7 +13,7 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-//#include "mraa.hpp"
+#include "mraa.hpp"
 
 #define SERVICE_PORT  21234
 #define BUFSIZE       2048
