@@ -44,6 +44,10 @@ void EdisonSerial::readLine(void){
    }
 }
 
-void EdisonSerial::writeLine(void){
+void EdisonSerial::writeLine(char* msg, int max_msg_size){
+    int result = _uart->write(msg, max_msg_size);
+    if(result == -1){
+        perror("Problem sending serial data:");
+    }
 
 }

@@ -3,7 +3,7 @@
 #include "EdisonSocket.h"
 
 EdisonComm::EdisonComm(){
-
+	// No need for constructor of abstract class
 }
 
 EdisonComm* EdisonComm::initComm(int choice){

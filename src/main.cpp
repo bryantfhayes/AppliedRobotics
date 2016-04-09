@@ -11,6 +11,7 @@
 #include "mraa.hpp"
 #include <string.h>
 #include "EdisonComm.h"
+#include <time.h>
 
 //
 // DEFINES
@@ -25,64 +26,61 @@
 #define SERIAL_MODE 0
 #define WIRELESS_MODE 1
 
+using namespace std;
 
 //
 // GLOBAL VARIABLES
 //
 const int servo_pins[NUM_SERVOS] = {3,5,6,9};
-bool running = true;
-EdisonComm* com;
+static bool running = true;
+static bool gameover = false;
+static time_t last_interrupt_time = 0;
+static EdisonComm* com;
 
-using namespace std;
-
+//
+// Responsible for handling CTRL-C interrupt.
+//
 void sig_handler(int signo) {
     if (signo == SIGINT) {
-        printf("...SHUTTING DOWN...\n");
+        printf("[SHUTTING DOWN]\n");
         running = false;
         com->running = false;
+        gameover = true;
     }
 }
 
+//
+// Responsible for handling toggle of INTERRUPT_PIN
+// which then starts/stops the game.
+//
+void toggleState(void* args){
+    time_t interrupt_time = time(0);
+    if (difftime(interrupt_time, last_interrupt_time) >= 1) {
+        running = !running;
+        com->running = running;
+        fprintf(stdout, "GAMESTATE:  %s\n", running ? "RUNNING" : "NOT RUNNING");
+    }
+    last_interrupt_time = interrupt_time;
+}
+
+//
+// Responsible for setting up all system interrupts.
+//
 void setupInterrupts(){
     // Catch CTRL-C interrupt
     signal(SIGINT, sig_handler);
+
+    // Setup ISR trigger on both edges
+    mraa::Gpio* x = new mraa::Gpio(4);
+    x->dir(mraa::DIR_IN);
+    x->isr(mraa::EDGE_BOTH, &toggleState, NULL);
+
     fprintf(stdout, "INTERRUPTS: RUNNING\n");
 }
 
-int setupUart(mraa::Uart** com){
-    try {
-        *com = new mraa::Uart(0);
-    } catch (std::exception& e) {
-        std::cout << e.what() << ", likely invalid platform config" << std::endl;
-    }
-
-    try {
-        *com = new mraa::Uart(SERIAL_PORT);
-    } catch (std::exception& e) {
-        std::cout << "Error while setting up raw UART, do you have a uart?" << std::endl;
-        std::terminate();
-    }
-
-    if ((*com)->setBaudRate(115200) != 0) {
-        std::cout << "Error setting parity on UART" << std::endl;
-    }
-
-    if ((*com)->setMode(8, MRAA_UART_PARITY_NONE, 1) != 0) {
-        std::cout << "Error setting parity on UART" << std::endl;
-    }
-
-    if ((*com)->setFlowcontrol(false, false) != 0) {
-        std::cout << "Error setting flow control UART" << std::endl;
-    }
-
-    fprintf(stdout, "UART:       RUNNING\n");
-    return MRAA_SUCCESS;
-
-    // EXAMPLE USAGE:
-    // com->writeStr("Hello World\n");
-    // com->readStr(16);
-}
-
+//
+// Responsible for settign up PWM channels.
+//
 int setupPwm(mraa::Pwm* servos[]){
     for(int i = 0; i < NUM_SERVOS; i++){
         servos[i] = new mraa::Pwm(servo_pins[i]);
@@ -98,8 +96,13 @@ int setupPwm(mraa::Pwm* servos[]){
     return MRAA_SUCCESS;
 }
 
+//
+// Responsible for receiving and parsing input from remote system
+// and then saving servo_values in memory.
+//
 void getCommand(EdisonComm* com, int servo_values[]){
 
+    // Blocking until message is received
     com->readLine();
 
     // Return if running is FALSE
@@ -126,6 +129,9 @@ void getCommand(EdisonComm* com, int servo_values[]){
     }
 }
 
+//
+// Responsible for setting PWM duty cycle to control servo position.
+//
 void updateServos(mraa::Pwm* servos[], int servo_values[]){
     // Write latest servo values
     for(int i = 0; i < NUM_SERVOS; i++){
@@ -133,6 +139,10 @@ void updateServos(mraa::Pwm* servos[], int servo_values[]){
     }
 }
 
+//
+// Responsible for parsing command line arguements and determining
+// which mode to run in.
+//
 int setupEnvironment(int argc, char* argv[], int* mode){
     // Example for reference: http://www.gnu.org/software/libc/manual/html_node/Example-of-Getopt.html#Example-of-Getopt
     int index;
@@ -157,10 +167,16 @@ int setupEnvironment(int argc, char* argv[], int* mode){
     return 0;
 }
 
+//
+// Responsible for initializing which ever COM mode user decides to use.
+//
 void setupComms(int mode){
     com = EdisonComm::initComm(mode);
 }
 
+//
+// Main 
+//
 int main(int argc, char* argv[]) {
     // Variables
     int servo_values[NUM_SERVOS];
@@ -173,14 +189,16 @@ int main(int argc, char* argv[]) {
     setupComms(mode);
     setupPwm(servos);
 
-
     // Main Loop
-    while(running == TRUE){
-        getCommand(com, servo_values);
-        updateServos(servos, servo_values);
+    while(!gameover){
+        // Game control loop
+        while(running){
+            getCommand(com, servo_values);
+            updateServos(servos, servo_values);
+        }
     }
 
-    // Clean Up
+    // Clean up memory
     if(mode == SERIAL_MODE)
         delete com;
     for(int i = 0; i < NUM_SERVOS; i++){

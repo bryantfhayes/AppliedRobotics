@@ -12,15 +12,16 @@ class EdisonSocket : public EdisonComm{
         EdisonSocket();
         ~EdisonSocket();
         void readLine(void);
-        void writeLine(void);
+        void writeLine(char*,int);
     private:
         int _sockNum;
         fd_set readset;
-        struct sockaddr_in myaddr;                  /* our address */
-        struct sockaddr_in remaddr;                 /* remote address */
+        struct sockaddr_in myaddr;                  /* our address         */
+        struct sockaddr_in remaddr;                 /* remote address      */
         socklen_t addrlen = sizeof(remaddr);        /* length of addresses */
-        int recvlen;                                /* # bytes received */
-        int fd;                                     /* our socket */
-    
+        int recvlen;                                /* # bytes received    */
+        int fd;                                     /* our socket          */
+        const char *server = "192.168.0.104";       /* remote IP Address   */
+
 };
 #endif

@@ -13,11 +13,11 @@ fishing_pole = SerialArm.Tool(0,19,19)
 
 def main():
     if args.testmode:
-        arm = SerialArm.SerialArm(15.5, 14, fishing_pole, z_offset=10.5)
+        arm = SerialArm.SerialArm(15.5, 14, fishing_pole,z_offset=10.5)
     elif args.wireless:
         arm = SerialArm.SerialArm(15.5,14,fishing_pole,z_offset=10.5,wireless=True)    
     else:
-        arm = SerialArm.SerialArm(15.5,14, fishing_pole,'/dev/cu.usbserial-A4012H3E', z_offset=10.5)
+        arm = SerialArm.SerialArm(15.5,14, fishing_pole,'/dev/cu.usbserial-A4012H3E',z_offset=10.5)
     while True: 
         print "Enter XYZ Coordinates (ex. 10,10,10): "
         coords = raw_input()

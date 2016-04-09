@@ -4,11 +4,11 @@
 
 #define SERIAL_PORT "/dev/ttyMFD1"
 
-class EdisonSerial : public EdisonComm{
+class EdisonSerial : public EdisonComm {
     public:
         EdisonSerial();
         void readLine(void);
-        void writeLine(void);
+        void writeLine(char*,int);
     private:
         mraa::Uart* _uart;
 };
