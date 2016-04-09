@@ -1,11 +1,12 @@
 #
-# Makefile for the project: PROJECT-NAME
+# Makefile for the project: Applied Robotics
 #
 
 CC := g++ # This is the main compiler
 # CC := clang --analyze # and comment out the linker last line for sanity
 SRCDIR := src
 BUILDDIR := build
+TESTDIR := test
 TARGET := bin/main
 
 SRCEXT := cpp
@@ -13,6 +14,7 @@ SOURCES := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
 OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
 CFLAGS := -g # -Wall
 LIB := -lmraa
+LIBTEST := 
 INC := -I include
 
 $(TARGET): $(OBJECTS)
@@ -29,7 +31,7 @@ clean:
 
 # Tests
 tester:
-	$(CC) $(CFLAGS) test/tester.cpp $(INC) $(LIB) -o bin/tester
+	$(CC) $(CFLAGS) test/tester.cpp $(INC) $(LIBTEST) -o bin/tester
 
 # Spikes
 ticket:
