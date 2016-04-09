@@ -6,7 +6,6 @@
 using namespace std;
 
 EdisonSerial::EdisonSerial(){
-    fprintf(stdout, "Creating Edison Serial Object\n");
     try {
         _uart = new mraa::Uart(0);
     } catch (exception& e) {
@@ -31,6 +30,8 @@ EdisonSerial::EdisonSerial(){
     if ((_uart)->setFlowcontrol(false, false) != 0) {
         cout << "Error setting flow control UART" << endl;
     }
+
+    fprintf(stdout, "SERIAL:     RUNNING\n");
     running = true;
 }
 

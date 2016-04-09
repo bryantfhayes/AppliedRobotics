@@ -37,7 +37,7 @@ using namespace std;
 
 void sig_handler(int signo) {
     if (signo == SIGINT) {
-        printf("Shutting down cleanly...\n");
+        printf("...SHUTTING DOWN...\n");
         running = false;
         com->running = false;
     }
@@ -181,7 +181,8 @@ int main(int argc, char* argv[]) {
     }
 
     // Clean Up
-    delete com;
+    if(mode == SERIAL_MODE)
+        delete com;
     for(int i = 0; i < NUM_SERVOS; i++){
         delete servos[i];
     }
