@@ -3,12 +3,8 @@
 // - EdisonSocket
 // - EdisonSerial
 //
-
 #ifndef __EDISONCOMM_H
 #define __EDISONCOMM_H
-#include <stdio.h>
-#include <stdlib.h>
-#include "mraa.hpp"
 
 #define MAX_MSG_SIZE 2048
 

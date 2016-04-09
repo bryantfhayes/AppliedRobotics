@@ -1,10 +1,12 @@
-#include "EdisonSocket.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include "EdisonSocket.h"
+#include "mraa.hpp"
+
 
 EdisonSocket::EdisonSocket(){
     /* create a UDP socket */

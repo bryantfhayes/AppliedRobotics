@@ -1,9 +1,9 @@
 #ifndef __EDISONSOCKET_H
 #define __EDISONSOCKET_H
-#include "EdisonComm.h"
 #include <netdb.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include "EdisonComm.h"
 
 #define SERVICE_PORT 21224
 

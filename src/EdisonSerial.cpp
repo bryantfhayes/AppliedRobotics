@@ -1,7 +1,8 @@
-#include "mraa.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <iostream>
 #include "EdisonSerial.h"
+#include "mraa.h"
 
 using namespace std;
 
