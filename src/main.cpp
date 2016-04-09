@@ -1,7 +1,8 @@
-/* File: main.cpp
- * Author: Bryant Hayes
- * Description: Low level code for controlling robotic arm based on receieved serial commands
- */
+//
+// File: main.cpp
+// Author: Bryant Hayes
+// Description: Low level code for controlling robotic arm based on receieved serial commands
+//
 
 #include <unistd.h>
 #include <signal.h>
