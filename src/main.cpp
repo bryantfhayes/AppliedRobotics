@@ -13,6 +13,7 @@
 #include <string.h>
 #include "EdisonComm.h"
 #include <time.h>
+#include "pca9685.h"
 
 //
 // DEFINES
@@ -22,7 +23,7 @@
 #define SERIAL_PORT "/dev/ttyMFD1"
 #define NUM_SERVOS 4
 #define SERVO_PERIOD 20000
-#define DEFAULT_PWM 1426
+#define DEFAULT_PWM 306
 #define MSG_SIZE 32
 #define SERIAL_MODE 0
 #define WIRELESS_MODE 1
@@ -82,19 +83,20 @@ void setupInterrupts(){
 //
 // Responsible for settign up PWM channels.
 //
-int setupPwm(mraa::Pwm* servos[]){
-    for(int i = 0; i < NUM_SERVOS; i++){
-        servos[i] = new mraa::Pwm(servo_pins[i]);
-        servos[i]->period_us(SERVO_PERIOD);
-        // Check that instantiation was successful
-        if(servos[i] == NULL)
-            return MRAA_ERROR_UNSPECIFIED;
-        servos[i]->enable(true);
-        servos[i]->pulsewidth_us(DEFAULT_PWM);
-    }
+int setupPwm(upm::PCA9685 **servos){
+    (*servos) = new upm::PCA9685(PCA9685_I2C_BUS,PCA9685_DEFAULT_I2C_ADDR);
+    // put device to sleep
+    (*servos)->setModeSleep(true);
+    // setup a period of 50Hz
+    (*servos)->setPrescaleFromHz(47.5);
+    // wake device up
+    (*servos)->setModeSleep(false);
 
-    fprintf(stdout, "PWM:        RUNNING\n");
-    return MRAA_SUCCESS;
+    for(int i = 0; i < NUM_SERVOS; i++){
+        (*servos)->ledOnTime(i, 0);
+        (*servos)->ledOffTime(i, DEFAULT_PWM);
+    }
+    return 0;
 }
 
 //
@@ -126,17 +128,18 @@ void getCommand(EdisonComm* com, int servo_values[]){
 
     for(int i = 0; i < pwms.size(); i++){
         servo_values[i] = pwms.at(i);
-    	fprintf(stdout, "Servo #%d = %d\n", i, servo_values[i]);
+        fprintf(stdout, "Servo #%d = %d\n", i, servo_values[i]);
     }
 }
 
 //
 // Responsible for setting PWM duty cycle to control servo position.
 //
-void updateServos(mraa::Pwm* servos[], int servo_values[]){
+void updateServos(upm::PCA9685* servos, int servo_values[]){
     // Write latest servo values
     for(int i = 0; i < NUM_SERVOS; i++){
-        servos[i]->pulsewidth_us(servo_values[i]);
+        servos->ledOnTime(i, 0); // May not need this line?
+        servos->ledOffTime(i, servo_values[i]);
     }
 }
 
@@ -178,17 +181,17 @@ void setupComms(int mode){
 //
 // Main 
 //
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[]) { 
     // Variables
     int servo_values[NUM_SERVOS];
     int mode = SERIAL_MODE; //DEFAULT
-    mraa::Pwm* servos[NUM_SERVOS];
+    upm::PCA9685 *servos;
     
     // Setup
     setupInterrupts();
     setupEnvironment(argc, argv, &mode);
     setupComms(mode);
-    setupPwm(servos);
+    setupPwm(&servos);
 
     // Main Loop
     while(!gameover){
@@ -200,11 +203,9 @@ int main(int argc, char* argv[]) {
     }
 
     // Clean up memory
+    delete servos;
     if(mode == SERIAL_MODE)
-        delete com;
-    for(int i = 0; i < NUM_SERVOS; i++){
-        delete servos[i];
-    }
+        delete com; 
 
     return MRAA_SUCCESS;
 }

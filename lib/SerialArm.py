@@ -12,7 +12,7 @@ class Tool(object):
 # values to individual servos. 
 class SerialArm(object):
   def __init__(self, tibia, femur, tool, port=None, z_offset=0, wireless=False):
-    self.x, self.y, self.z, self.r = (1350,1500,1300,1350)
+    self.x, self.y, self.z, self.r = (300,300,300,300)
     self.port = port
     self.tool = tool
     self.wireless = wireless
@@ -28,6 +28,7 @@ class SerialArm(object):
       self._ser.write(msg)
     elif self.wireless:
       self.sock.sendto(msg, (UDP_IP, UDP_PORT))
+    print "Sent: {}".format(msg)
 
   def updateArm(self):
   	self.send("{0},{1},{2},{3}\0\n".format(self.x,self.y,self.z,self.r))
