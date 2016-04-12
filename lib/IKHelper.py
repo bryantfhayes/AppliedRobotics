@@ -15,12 +15,6 @@ Y_MIN_ANGLE = 100
 Z_MAX_ANGLE = 55
 Z_MIN_ANGLE = 25
 
-I2C_PWM_MIN = 102
-I2C_PWM_MAX = 510
-
-US_PWM_MIN = 500
-US_PWM_MAX = 2500
-
 class IKHelper():
   def __init__(self, tibia, femur):
     self.T = tibia
@@ -44,15 +38,6 @@ class IKHelper():
     servo_z = interp(delta_b,[Z_MIN_ANGLE,Z_MAX_ANGLE],[Z_MIN_PWM,Z_MAX_PWM])
     #servo_r = interp(g,[-90,90],[2100,600])
     servo_r = 1350
-
-    print "sending: {0},{1},{2},{3}\0\n".format(servo_x,servo_y,servo_z,servo_r)
-
-    # Convert to 1/4096 scale for i2c board
-    servo_x = interp(servo_x,[US_PWM_MIN,US_PWM_MAX],[I2C_PWM_MIN,I2C_PWM_MAX])
-    servo_y = interp(servo_y,[US_PWM_MIN,US_PWM_MAX],[I2C_PWM_MIN,I2C_PWM_MAX])
-    servo_z = interp(servo_z,[US_PWM_MIN,US_PWM_MAX],[I2C_PWM_MIN,I2C_PWM_MAX])
-    servo_r = interp(servo_r,[US_PWM_MIN,US_PWM_MAX],[I2C_PWM_MIN,I2C_PWM_MAX])
-    
 
     return (int(servo_x), int(servo_y), int(servo_z), int(servo_r))
 

@@ -193,6 +193,8 @@ int main(int argc, char* argv[]) {
     setupComms(mode);
     setupPwm(&servos);
 
+    fprintf(stdout, "GAMESTATE: %s\n", running ? "RUNNING" : "NOT RUNNING");
+
     // Main Loop
     while(!gameover){
         // Game control loop

@@ -1,5 +1,10 @@
 import IKHelper,serial,socket,math
 
+I2C_PWM_MIN = 102
+I2C_PWM_MAX = 510
+US_PWM_MIN = 500
+US_PWM_MAX = 2500
+
 UDP_IP   = "edison.local"
 UDP_PORT = 21224 
 
@@ -28,15 +33,19 @@ class SerialArm(object):
       self._ser.write(msg)
     elif self.wireless:
       self.sock.sendto(msg, (UDP_IP, UDP_PORT))
+  
+  # Convert to 1/4096 scale for i2c board
+  def convertFor4096(self, pwm):
+    return interp(pwm,[US_PWM_MIN,US_PWM_MAX],[I2C_PWM_MIN,I2C_PWM_MAX])
 
   def updateArm(self):
-  	self.send("{0},{1},{2},{3}\0\n".format(self.x,self.y,self.z,self.r))
+  	self.send("{0},{1},{2},{3}\0\n".format(self.convertFor4096(self.x),self.convertFor4096(self.y),self.convertFor4096(self.z),self.convertFor4096(self.r)))
 
   def getPosition(self):
   	return (self.x, self.y, self.z, self.r)
 
   def _directWrite(self,x,y,z,r):
-      self.send("{0},{1},{2},{3}\0\n".format(x,y,z,r))
+    self.send("{0},{1},{2},{3}\0\n".format(self.convertFor4096(x),self.convertFor4096(y),self.convertFor4096(z),self.convertFor4096(r)))
 
   # Takes either a tuple (X, Y, Z) or individual X, Y, Z args
   def setPosition(self, X, Y=None, Z=None):
