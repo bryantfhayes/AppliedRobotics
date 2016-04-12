@@ -1,19 +1,19 @@
 from numpy import interp
 import math
 
-X_MAX_PWM = 525
-X_MIN_PWM = 2000
-Y_MAX_PWM = 1600
-Y_MIN_PWM = 900
-Z_MAX_PWM = 1400
-Z_MIN_PWM = 800
+X_MAX_PWM = 610
+X_MIN_PWM = 2210
+Y_MAX_PWM = 1700
+Y_MIN_PWM = 1000
+Z_MAX_PWM = 1600
+Z_MIN_PWM = 900
 
 X_MAX_ANGLE = 90
 X_MIN_ANGLE = -90
-Y_MAX_ANGLE = 185
+Y_MAX_ANGLE = 180
 Y_MIN_ANGLE = 100
-Z_MAX_ANGLE = 55
-Z_MIN_ANGLE = 25
+Z_MAX_ANGLE = 70
+Z_MIN_ANGLE = 0
 
 class IKHelper():
   def __init__(self, tibia, femur):
@@ -26,19 +26,22 @@ class IKHelper():
     servo_x = interp(g,[X_MIN_ANGLE,X_MAX_ANGLE],[X_MIN_PWM,X_MAX_PWM])
     servo_y = interp(a,[Y_MIN_ANGLE,Y_MAX_ANGLE],[Y_MIN_PWM,Y_MAX_PWM])
     # Calculate current beta degrees due to mechanical structure
-    a2 = a - 90
-    #a3 = math.atan2(19,(15.5+18))
-    b2 = 180 - a2
-    #print "ANGLE: {0}, Tibia Length: {2}".format(b2,self.T)
+    b2 = (180 - a) + 90
+    print "NATURAL BETA: {0}".format(b2)
     
     # Calculate how much more beta axis needs to rotate where delta_b is degrees
     # servo needs to rotate.
     delta_b = b2 - b
-    # map servo_z rotation
-    servo_z = interp(delta_b,[Z_MIN_ANGLE,Z_MAX_ANGLE],[Z_MIN_PWM,Z_MAX_PWM])
-    #servo_r = interp(g,[-90,90],[2100,600])
-    servo_r = 1350
+    print "BETA OFFSET: {0}".format(delta_b)
+    bonusAngle = interp(servo_y,[Y_MIN_PWM,Y_MAX_PWM],[40,0])
+    bonusPwm = interp(servo_y,[Y_MIN_PWM,Y_MAX_PWM],[350,0])
 
+    print "mapping: {0}->{1} to {2}->{3}".format(Z_MIN_ANGLE,Z_MAX_ANGLE+bonusAngle,Z_MIN_PWM,Z_MAX_PWM+bonusPwm)
+    # map servo_z rotation
+    servo_z = interp(delta_b,[Z_MIN_ANGLE,Z_MAX_ANGLE+bonusAngle],[Z_MIN_PWM,Z_MAX_PWM+bonusPwm])
+    #servo_r = interp(g,[-90,90],[2100,600])
+    servo_r = 1500
+    
     return (int(servo_x), int(servo_y), int(servo_z), int(servo_r))
 
   def radsToDegs(self, x):

@@ -1,4 +1,5 @@
 import IKHelper,serial,socket,math
+from numpy import interp
 
 I2C_PWM_MIN = 102
 I2C_PWM_MAX = 510
@@ -26,8 +27,9 @@ class SerialArm(object):
       self._ser = serial.Serial(port,115200,timeout=5)
     elif self.wireless:
       self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    self.ik = IKHelper.IKHelper(math.pow(((tibia+tool.y)**2)+(tool.z**2), 0.5), femur)
-
+    #self.ik = IKHelper.IKHelper(math.pow(((tibia+tool.y)**2)+(tool.z**2), 0.5), femur)
+    self.ik = IKHelper.IKHelper(tibia, femur)
+  
   def send(self, msg):
     if self.port:
       self._ser.write(msg)
@@ -36,7 +38,7 @@ class SerialArm(object):
   
   # Convert to 1/4096 scale for i2c board
   def convertFor4096(self, pwm):
-    return interp(pwm,[US_PWM_MIN,US_PWM_MAX],[I2C_PWM_MIN,I2C_PWM_MAX])
+    return int(interp(pwm,[US_PWM_MIN,US_PWM_MAX],[I2C_PWM_MIN,I2C_PWM_MAX]))
 
   def updateArm(self):
   	self.send("{0},{1},{2},{3}\0\n".format(self.convertFor4096(self.x),self.convertFor4096(self.y),self.convertFor4096(self.z),self.convertFor4096(self.r)))
