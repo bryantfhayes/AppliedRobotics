@@ -28,7 +28,6 @@ class SerialArm(object):
       self._ser.write(msg)
     elif self.wireless:
       self.sock.sendto(msg, (UDP_IP, UDP_PORT))
-    print "Sent: {}".format(msg)
 
   def updateArm(self):
   	self.send("{0},{1},{2},{3}\0\n".format(self.x,self.y,self.z,self.r))

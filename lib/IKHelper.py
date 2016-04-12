@@ -45,6 +45,8 @@ class IKHelper():
     #servo_r = interp(g,[-90,90],[2100,600])
     servo_r = 1350
 
+    print "sending: {0},{1},{2},{3}\0\n".format(servo_x,servo_y,servo_z,servo_r)
+
     # Convert to 1/4096 scale for i2c board
     servo_x = interp(servo_x,[US_PWM_MIN,US_PWM_MAX],[I2C_PWM_MIN,I2C_PWM_MAX])
     servo_y = interp(servo_y,[US_PWM_MIN,US_PWM_MAX],[I2C_PWM_MIN,I2C_PWM_MAX])
