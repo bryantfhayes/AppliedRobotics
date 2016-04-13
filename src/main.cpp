@@ -92,6 +92,8 @@ int setupPwm(upm::PCA9685 **servos){
     // wake device up
     (*servos)->setModeSleep(false);
 
+    sleep(1);
+
     for(int i = 0; i < NUM_SERVOS; i++){
         (*servos)->ledOnTime(i, 0);
         (*servos)->ledOffTime(i, DEFAULT_PWM);
@@ -141,6 +143,7 @@ void updateServos(upm::PCA9685* servos, int servo_values[]){
         servos->ledOnTime(i, 0); // May not need this line?
         servos->ledOffTime(i, servo_values[i]);
     }
+    printf("Writing to I2C\n");
 }
 
 //
@@ -178,10 +181,56 @@ void setupComms(int mode){
     com = EdisonComm::initComm(mode);
 }
 
+void test(){
+  upm::PCA9685 *leds = new upm::PCA9685(PCA9685_I2C_BUS, 
+                                        PCA9685_DEFAULT_I2C_ADDR);
+
+  // put device to sleep
+  leds->setModeSleep(true);
+
+  // setup a period of 50Hz
+  leds->setPrescaleFromHz(50);
+  
+  // wake device up
+  leds->setModeSleep(false);
+
+  // Setup a 50% duty cycle -- on time at 0, off time at 2048 (4096 / 2)
+  // Set for all channels
+
+  leds->ledOnTime(PCA9685_ALL_LED, 0);
+  leds->ledOffTime(PCA9685_ALL_LED, 2048);
+
+  // but, turn channel 3 full off and channel 4 full on
+
+  cout << "Turning channel 3 off, and channel 4 on." << endl;
+  cout << "All other channels will be PWM'd at a 50% duty cycle." << endl;
+
+  leds->ledFullOff(3, true);
+  leds->ledFullOn(4, true);
+
+  // now, just sleep for 5 seconds, reset channels 3 and 4, and exit.
+  cout << "Sleeping for 5 seconds..." << endl;
+
+  sleep(5);
+
+  cout << "Exiting..." << endl;
+
+  // clear the bits we set earlier
+  leds->ledFullOff(3, false);
+  leds->ledFullOn(4, false);
+
+//! [Interesting]
+
+  delete leds;
+  return;
+}
+
 //
 // Main 
 //
 int main(int argc, char* argv[]) { 
+    //test();
+    //return 0;
     // Variables
     int servo_values[NUM_SERVOS];
     int mode = SERIAL_MODE; //DEFAULT
