@@ -15,6 +15,8 @@ Y_MIN_ANGLE = 100
 Z_MAX_ANGLE = 70
 Z_MIN_ANGLE = 0
 
+BASE_ANGLE = 90 # 90 without rod attached
+
 class IKHelper():
   def __init__(self, tibia, femur):
     self.T = tibia
@@ -26,7 +28,7 @@ class IKHelper():
     servo_x = interp(g,[X_MIN_ANGLE,X_MAX_ANGLE],[X_MIN_PWM,X_MAX_PWM])
     servo_y = interp(a,[Y_MIN_ANGLE,Y_MAX_ANGLE],[Y_MIN_PWM,Y_MAX_PWM])
     # Calculate current beta degrees due to mechanical structure
-    b2 = (180 - a) + 90
+    b2 = (180 - a) + BASE_ANGLE
     print "NATURAL BETA: {0}".format(b2)
     
     # Calculate how much more beta axis needs to rotate where delta_b is degrees

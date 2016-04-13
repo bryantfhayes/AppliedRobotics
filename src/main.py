@@ -16,6 +16,7 @@ def main():
         arm = SerialArm.SerialArm(15.5,14,fishing_pole,z_offset=10.5)
     elif args.wireless:
         arm = SerialArm.SerialArm(15.5,14,fishing_pole,z_offset=10.5,wireless=True)    
+        #arm = SerialArm.SerialArm(((15.5+21)**2 + (19)**2)**0.5,14,fishing_pole,z_offset=10.5,wireless=True)    
     else:
         arm = SerialArm.SerialArm(15.5,14,fishing_pole,'/dev/cu.usbserial-A4012H3E',z_offset=10.5)
     while True: 
