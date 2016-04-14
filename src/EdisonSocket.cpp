@@ -49,12 +49,12 @@ void EdisonSocket::readLine(void){
         int result = select(fd+1, &readset, NULL, NULL, NULL);
         if(result > 0){
             if(FD_ISSET(fd, &readset)){
-                fprintf(stdout, "Waiting for data\n");
+                //fprintf(stdout, "Waiting for data\n");
                 recvlen = recvfrom(fd, recvBuffer, MAX_MSG_SIZE, 0, (struct sockaddr *)&remaddr, &addrlen);
-                printf("received %d bytes\n", recvlen);
+                //printf("received %d bytes\n", recvlen);
                 if (recvlen > 0) {
                     recvBuffer[recvlen] = 0;
-                    printf("received message: \"%s\"\n", recvBuffer);
+                    //printf("received message: \"%s\"\n", recvBuffer);
                     break;
                 }else if (recvlen == 0){
                     close(fd);

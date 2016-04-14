@@ -14,6 +14,7 @@
 #include "EdisonComm.h"
 #include <time.h>
 #include "pca9685.h"
+#include "IKHelper.h"
 
 //
 // DEFINES
@@ -21,19 +22,18 @@
 #define TRUE 1
 #define FALSE 0
 #define SERIAL_PORT "/dev/ttyMFD1"
-#define NUM_SERVOS 4
 #define SERVO_PERIOD 20000
 #define DEFAULT_PWM 306
 #define MSG_SIZE 32
 #define SERIAL_MODE 0
 #define WIRELESS_MODE 1
+#define CONSOLE_MODE 2
 
 using namespace std;
 
 //
 // GLOBAL VARIABLES
 //
-const int servo_pins[NUM_SERVOS] = {3,5,6,9};
 static bool running = true;
 static bool gameover = false;
 static time_t last_interrupt_time = 0;
@@ -78,6 +78,7 @@ void setupInterrupts(){
     x->isr(mraa::EDGE_BOTH, &toggleState, NULL);
 
     fprintf(stdout, "INTERRUPTS: RUNNING\n");
+    fprintf(stdout, "GAMESTATE:  %s\n", running ? "RUNNING" : "NOT RUNNING");
 }
 
 //
@@ -91,6 +92,11 @@ int setupPwm(upm::PCA9685 **servos){
     (*servos)->setPrescaleFromHz(47.5);
     // wake device up
     (*servos)->setModeSleep(false);
+
+
+    (*servos)->ledOnTime(PCA9685_ALL_LED, 0);
+    (*servos)->ledOffTime(PCA9685_ALL_LED, 300);
+
 
     sleep(1);
 
@@ -128,10 +134,20 @@ void getCommand(EdisonComm* com, int servo_values[]){
             ss.ignore();
     }
 
-    for(int i = 0; i < pwms.size(); i++){
-        servo_values[i] = pwms.at(i);
-        fprintf(stdout, "Servo #%d = %d\n", i, servo_values[i]);
+    if(pwms.size() == 3){
+        double x = pwms.at(0);
+        double y = pwms.at(1);
+        double z = pwms.at(2);
+        int retval = XYZ_to_PWM(x,y,z,servo_values);
+        if(retval == -1){
+            fprintf(stdout, "\tReceived unreachable coordinates\n");
+        } else {
+            for(int i = 0; i < NUM_SERVOS; i++){
+                fprintf(stdout, "\tServo #%d = %d\n", i+1, servo_values[i]);
+            }
+        }
     }
+    return;
 }
 
 //
@@ -143,7 +159,6 @@ void updateServos(upm::PCA9685* servos, int servo_values[]){
         servos->ledOnTime(i, 0); // May not need this line?
         servos->ledOffTime(i, servo_values[i]);
     }
-    printf("Writing to I2C\n");
 }
 
 //
@@ -178,50 +193,7 @@ int setupEnvironment(int argc, char* argv[], int* mode){
 // Responsible for initializing which ever COM mode user decides to use.
 //
 void setupComms(int mode){
-    com = EdisonComm::initComm(mode);
-}
-
-void test(){
-  upm::PCA9685 *leds = new upm::PCA9685(PCA9685_I2C_BUS, 
-                                        PCA9685_DEFAULT_I2C_ADDR);
-
-  // put device to sleep
-  leds->setModeSleep(true);
-
-  // setup a period of 50Hz
-  leds->setPrescaleFromHz(50);
-  
-  // wake device up
-  leds->setModeSleep(false);
-
-  // Setup a 50% duty cycle -- on time at 0, off time at 2048 (4096 / 2)
-  // Set for all channels
-
-  leds->ledOnTime(PCA9685_ALL_LED, 0);
-  leds->ledOffTime(PCA9685_ALL_LED, 2048);
-
-  // but, turn channel 3 full off and channel 4 full on
-
-  cout << "Turning channel 3 off, and channel 4 on." << endl;
-  cout << "All other channels will be PWM'd at a 50% duty cycle." << endl;
-
-  leds->ledFullOff(3, true);
-  leds->ledFullOn(4, true);
-
-  // now, just sleep for 5 seconds, reset channels 3 and 4, and exit.
-  cout << "Sleeping for 5 seconds..." << endl;
-
-  sleep(5);
-
-  cout << "Exiting..." << endl;
-
-  // clear the bits we set earlier
-  leds->ledFullOff(3, false);
-  leds->ledFullOn(4, false);
-
-//! [Interesting]
-
-  delete leds;
+  com = EdisonComm::initComm(mode);
   return;
 }
 
@@ -229,11 +201,9 @@ void test(){
 // Main 
 //
 int main(int argc, char* argv[]) { 
-    //test();
-    //return 0;
     // Variables
     int servo_values[NUM_SERVOS];
-    int mode = SERIAL_MODE; //DEFAULT
+    int mode = CONSOLE_MODE; //DEFAULT
     upm::PCA9685 *servos;
     
     // Setup
@@ -241,8 +211,6 @@ int main(int argc, char* argv[]) {
     setupEnvironment(argc, argv, &mode);
     setupComms(mode);
     setupPwm(&servos);
-
-    fprintf(stdout, "GAMESTATE: %s\n", running ? "RUNNING" : "NOT RUNNING");
 
     // Main Loop
     while(!gameover){
