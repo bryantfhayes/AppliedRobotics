@@ -123,9 +123,9 @@ void getCommand(EdisonComm* com, int servo_values[]){
 
     // Analyze serial message
     string commandStr = string(com->recvBuffer);
-    vector<int> pwms;
+    vector<double> pwms;
     stringstream ss(commandStr);
-    int i;
+    double i;
 
     // Parse command string into pwms array
     while(ss >> i){
@@ -138,7 +138,9 @@ void getCommand(EdisonComm* com, int servo_values[]){
         double x = pwms.at(0);
         double y = pwms.at(1);
         double z = pwms.at(2);
+        printf("x = %lf\n", x);
         int retval = XYZ_to_PWM(x,y,z,servo_values);
+        printf("servo_x = %d\n", servo_values[0]);
         if(retval == -1){
             fprintf(stdout, "\tReceived unreachable coordinates\n");
         } else {
