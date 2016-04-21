@@ -23,11 +23,14 @@
 #define FALSE 0
 #define SERIAL_PORT "/dev/ttyMFD1"
 #define SERVO_PERIOD 20000
-#define DEFAULT_PWM 306
+#define DEFAULT_PWM 1245
 #define MSG_SIZE 32
 #define SERIAL_MODE 0
 #define WIRELESS_MODE 1
 #define CONSOLE_MODE 2
+#define TEST_MODE 3
+
+//#define DEBUG 1
 
 using namespace std;
 
@@ -89,13 +92,13 @@ int setupPwm(upm::PCA9685 **servos){
     // put device to sleep
     (*servos)->setModeSleep(true);
     // setup a period of 50Hz
-    (*servos)->setPrescaleFromHz(47.5);
+    (*servos)->setPrescaleFromHz(190);
     // wake device up
     (*servos)->setModeSleep(false);
 
 
     (*servos)->ledOnTime(PCA9685_ALL_LED, 0);
-    (*servos)->ledOffTime(PCA9685_ALL_LED, 300);
+    (*servos)->ledOffTime(PCA9685_ALL_LED, DEFAULT_PWM);
 
 
     sleep(1);
@@ -118,8 +121,9 @@ void getCommand(EdisonComm* com, int servo_values[]){
 
     // Return if running is FALSE
     if(!running) return;
-
+#ifdef DEBUG
     fprintf(stdout, "Got a message: %s\n", com->recvBuffer);
+#endif
 
     // Analyze serial message
     string commandStr = string(com->recvBuffer);
@@ -138,14 +142,16 @@ void getCommand(EdisonComm* com, int servo_values[]){
         double x = pwms.at(0);
         double y = pwms.at(1);
         double z = pwms.at(2);
-        printf("x = %lf\n", x);
         int retval = XYZ_to_PWM(x,y,z,servo_values);
-        printf("servo_x = %d\n", servo_values[0]);
         if(retval == -1){
+#ifdef DEBUG
             fprintf(stdout, "\tReceived unreachable coordinates\n");
+#endif
         } else {
             for(int i = 0; i < NUM_SERVOS; i++){
+#ifdef DEBUG
                 fprintf(stdout, "\tServo #%d = %d\n", i+1, servo_values[i]);
+#endif
             }
         }
     }
@@ -173,10 +179,13 @@ int setupEnvironment(int argc, char* argv[], int* mode){
     int c;
 
     opterr = 0;
-    while ((c = getopt (argc, argv, "w")) != -1){
+    while ((c = getopt (argc, argv, "wt")) != -1){
         switch (c){
           case 'w':
             *mode = WIRELESS_MODE;
+            break;
+          case 't':
+            *mode = TEST_MODE;
             break;
           case '?':
             if (isprint (optopt))
@@ -213,6 +222,21 @@ int main(int argc, char* argv[]) {
     setupEnvironment(argc, argv, &mode);
     setupComms(mode);
     setupPwm(&servos);
+
+    // TEST CODE HERE
+    if(mode == TEST_MODE){
+        printf("TEST CODE ACTIVE\n");
+        int test_values[NUM_SERVOS] = {1244, 1244, 1244};
+        updateServos(servos, test_values);       
+
+        sleep(4);
+
+        // Clean up memory
+        delete servos;
+        if(mode == SERIAL_MODE)
+            delete com; 
+        return 0;
+    }
 
     // Main Loop
     while(!gameover){
