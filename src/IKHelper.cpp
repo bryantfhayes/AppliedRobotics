@@ -12,7 +12,7 @@ void angle_to_pwm(double g, double a, double b, int pwm_values[]){
     // servo needs to rotate.
     double delta_b = b2 - b;
     double bonusAngle = interp(pwm_y,Y_MIN_PWM,Y_MAX_PWM,40,0);
-    double bonusPwm = interp(pwm_y,Y_MIN_PWM,Y_MAX_PWM,350,0);
+    double bonusPwm = interp(pwm_y,Y_MIN_PWM,Y_MAX_PWM,200,0);
     // map servo_z rotation
     double pwm_z = interp(delta_b,Z_MIN_ANGLE,Z_MAX_ANGLE+bonusAngle,Z_MIN_PWM,Z_MAX_PWM+bonusPwm);
     // Save and return
@@ -30,6 +30,10 @@ void angle_to_pwm(double g, double a, double b, int pwm_values[]){
 int interp(double n, int x1, int x2, int y1, int y2){
     double slope = 1.0 * (y2 - y1) / (x2 - x1);
     int output = y1 + round(slope * (n - x1));
+    if((y2 > y1) && (output > y2)) return y2;
+    if((y2 > y1) && (output < y1)) return y1;
+    if((y2 < y1) && (output > y1)) return y1;
+    if((y2 < y1) && (output < y2)) return y2;
     return output;
 }
 
@@ -66,7 +70,7 @@ double get_beta(double x, double y, double z){
 
 void scale_pwm(int pwm_values[]){
     for(int i = 0; i < NUM_SERVOS; i++){
-        pwm_values[i] = interp(pwm_values[i], 500, 2500, 102, 510);
+        pwm_values[i] = interp(pwm_values[i], 900, 2100, 736, 1717);
     }
 }
 

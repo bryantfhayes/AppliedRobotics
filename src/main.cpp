@@ -30,7 +30,15 @@
 #define CONSOLE_MODE 2
 #define TEST_MODE 3
 
-//#define DEBUG 1
+// Servo safety bounds
+#define SERVO_X_MIN 700
+#define SERVO_X_MAX 1750
+#define SERVO_Y_MIN 750
+#define SERVO_Y_MAX 1375
+#define SERVO_Z_MIN 750
+#define SERVO_Z_MAX 1600
+
+#define DEBUG 1
 
 using namespace std;
 
@@ -162,6 +170,11 @@ void getCommand(EdisonComm* com, int servo_values[]){
 // Responsible for setting PWM duty cycle to control servo position.
 //
 void updateServos(upm::PCA9685* servos, int servo_values[]){
+    // Safety range check
+    if (((servo_values[0] > SERVO_X_MAX) || (servo_values[0] < SERVO_X_MIN)) || ((servo_values[1] > SERVO_Y_MAX) || (servo_values[1] < SERVO_Y_MIN)) || ((servo_values[2] > SERVO_Z_MAX) || (servo_values[2] < SERVO_Z_MIN))) {
+        fprintf(stdout, "BAD SERVO VALUE ATTEMPTED!\n");
+        return;
+    }
     // Write latest servo values
     for(int i = 0; i < NUM_SERVOS; i++){
         servos->ledOnTime(i, 0); // May not need this line?
@@ -229,6 +242,33 @@ int main(int argc, char* argv[]) {
         int test_values[NUM_SERVOS] = {1244, 1244, 1244};
         updateServos(servos, test_values);       
 
+        sleep(1);
+
+        char input[MSG_SIZE];
+        while(1){
+            printf("Enter PWM values [a,b,c]:");
+            scanf("%s", input);
+
+            // Analyze serial message
+            string commandStr = string(input);
+            vector<double> pwms;
+            stringstream ss(commandStr);
+            double i;
+
+            // Parse command string into pwms array
+            while(ss >> i){
+                pwms.push_back(i);
+                if(ss.peek() == ',')
+                    ss.ignore();
+            }
+
+            if(pwms.size() == 3){
+                test_values[0] = (int)pwms.at(0);
+                test_values[1] = (int)pwms.at(1);
+                test_values[2] = (int)pwms.at(2);
+            }
+            updateServos(servos, test_values);
+        }
         sleep(4);
 
         // Clean up memory
