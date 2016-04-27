@@ -13,8 +13,10 @@ void angle_to_pwm(double g, double a, double b, int pwm_values[]){
     // Calculate how much more beta axis needs to rotate where delta_b is degrees
     // servo needs to rotate.
     double delta_b = b2 - b;
+    double bonusAngle = interp(pwm_y,Y_MIN_PWM,Y_MAX_PWM,40,0);
+    double bonusPwm = interp(pwm_y,Y_MIN_PWM,Y_MAX_PWM,350,0);
     // map servo_z rotation
-    double pwm_z = interp(delta_b,Z_MIN_ANGLE,Z_MAX_ANGLE,Z_MIN_PWM,Z_MAX_PWM);
+    double pwm_z = interp(delta_b,Z_MIN_ANGLE,Z_MAX_ANGLE+bonusAngle,Z_MIN_PWM,Z_MAX_PWM+bonusPwm);
     // Save and return
     pwm_values[0] = pwm_x;
     pwm_values[1] = pwm_y;
