@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+static double theta = 0.0;
+
 void angle_to_pwm(double g, double a, double b, int pwm_values[]){
     double pwm_x = interp(g,X_MIN_ANGLE,X_MAX_ANGLE,X_MIN_PWM,X_MAX_PWM);
     double pwm_y = interp(a,Y_MIN_ANGLE,Y_MAX_ANGLE,Y_MIN_PWM,Y_MAX_PWM);
@@ -11,10 +13,8 @@ void angle_to_pwm(double g, double a, double b, int pwm_values[]){
     // Calculate how much more beta axis needs to rotate where delta_b is degrees
     // servo needs to rotate.
     double delta_b = b2 - b;
-    double bonusAngle = interp(pwm_y,Y_MIN_PWM,Y_MAX_PWM,40,0);
-    double bonusPwm = interp(pwm_y,Y_MIN_PWM,Y_MAX_PWM,200,0);
     // map servo_z rotation
-    double pwm_z = interp(delta_b,Z_MIN_ANGLE,Z_MAX_ANGLE+bonusAngle,Z_MIN_PWM,Z_MAX_PWM+bonusPwm);
+    double pwm_z = interp(delta_b,Z_MIN_ANGLE,Z_MAX_ANGLE,Z_MIN_PWM,Z_MAX_PWM);
     // Save and return
     pwm_values[0] = pwm_x;
     pwm_values[1] = pwm_y;
@@ -23,6 +23,7 @@ void angle_to_pwm(double g, double a, double b, int pwm_values[]){
     //for(int i = 0; i < NUM_SERVOS; i++){
     //   fprintf(stdout, "raw_pwm %d = %d\n", i, pwm_values[i]);
     //}
+    fprintf(stdout, "angles: g: %lf, a: %lf, b: %lf\n", g, a, b);
 
     return; 
 }
@@ -43,6 +44,7 @@ double rads_to_degs(double x){
 
 double get_gamma(double x, double y, double z){
     double g = atan2(x,y);
+    theta = g;
     return rads_to_degs(g);
 }
 
@@ -77,8 +79,10 @@ void scale_pwm(int pwm_values[]){
 int XYZ_to_PWM(double x, double y, double z, int pwm_values[]){
     // Determine required joint angles
     double g = get_gamma(x,y,z);
-    double a = get_alpha(x,y,z);
-    double b = get_beta(x,y,z);
+    double a = get_alpha(x-(22*sin(theta)),y-(22*cos(theta)),z+16);
+    double b = get_beta(x-(22*sin(theta)),y-(22*cos(theta)),z+16);
+    //double a = get_alpha(x,y,z+16);
+    //double b = get_beta(x,y,z+16);
     
     if(isnan(a) || isnan(b) || isnan(g)){
         return -1;

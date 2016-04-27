@@ -57,7 +57,8 @@ void sig_handler(int signo) {
     if (signo == SIGINT) {
         printf("[SHUTTING DOWN]\n");
         running = false;
-        com->running = false;
+        if(com != NULL) 
+            com->running = false;
         gameover = true;
     }
 }
@@ -245,7 +246,7 @@ int main(int argc, char* argv[]) {
         sleep(1);
 
         char input[MSG_SIZE];
-        while(1){
+        while(!gameover){
             printf("Enter PWM values [a,b,c]:");
             scanf("%s", input);
 
@@ -263,13 +264,25 @@ int main(int argc, char* argv[]) {
             }
 
             if(pwms.size() == 3){
-                test_values[0] = (int)pwms.at(0);
-                test_values[1] = (int)pwms.at(1);
-                test_values[2] = (int)pwms.at(2);
+                /*
+                double g, a, b;
+                g = (double)pwms.at(0);
+                a = (double)pwms.at(1);
+                b = (double)pwms.at(2);
+                // Determine PWM values
+                angle_to_pwm(g, a, b, test_values);
+                // map pwm values to range required for 1/4096 resolution
+                scale_pwm(test_values);
+                */
+                
+                test_values[0] = (double)pwms.at(0);
+                test_values[1] = (double)pwms.at(1);
+                test_values[2] = (double)pwms.at(2);
+                
+                updateServos(servos, test_values);
             }
-            updateServos(servos, test_values);
+            
         }
-        sleep(4);
 
         // Clean up memory
         delete servos;

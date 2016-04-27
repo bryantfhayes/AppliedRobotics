@@ -4,20 +4,20 @@
 #define NUM_SERVOS 3
 
 #define X_MAX_PWM  854
-#define X_MIN_PWM  2100
+#define X_MIN_PWM  2075
 #define Y_MAX_PWM  1678
 #define Y_MIN_PWM  915
 #define Z_MAX_PWM  1586
 #define Z_MIN_PWM  915
-#define X_MAX_ANGLE  45
-#define X_MIN_ANGLE  -45
-#define Y_MAX_ANGLE  180
-#define Y_MIN_ANGLE  100
-#define Z_MAX_ANGLE  70
+#define X_MAX_ANGLE  70
+#define X_MIN_ANGLE  -60
+#define Y_MAX_ANGLE  185
+#define Y_MIN_ANGLE  104
+#define Z_MAX_ANGLE  65
 #define Z_MIN_ANGLE  0
-#define BASE_ANGLE 85
+#define BASE_ANGLE 90
 
-#define TIBIA 15.5
+#define TIBIA 15.0
 #define FEMUR 14.0
 
 #define PI 3.141592653
