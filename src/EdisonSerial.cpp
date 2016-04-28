@@ -33,11 +33,11 @@ EdisonSerial::EdisonSerial(){
     }
 
     fprintf(stdout, "SERIAL:     RUNNING\n");
-    running = true;
+    gameover = false;
 }
 
 void EdisonSerial::readLine(void){
-   while(running){
+   while(!gameover){
         if(_uart->dataAvailable()){
             _uart->read(recvBuffer, MAX_MSG_SIZE);
             break;

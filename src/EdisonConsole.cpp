@@ -8,11 +8,11 @@ using namespace std;
 
 EdisonConsole::EdisonConsole(){
     fprintf(stdout, "CONSOLE:    RUNNING\n");
-    running = true;
+    gameover = false;
 }
 
 void EdisonConsole::readLine(void){
-   fprintf(stdout, "Enter Coordinates (x,y,z):");
+   fprintf(stdout, "COMMAND >");
    cin >> recvBuffer;
 }
 

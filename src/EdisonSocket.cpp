@@ -36,6 +36,8 @@ EdisonSocket::EdisonSocket(){
     }
 
     fprintf(stdout, "SOCKET:     RUNNING\n");
+
+    gameover = false;
 }
 
 EdisonSocket::~EdisonSocket(){
@@ -43,7 +45,7 @@ EdisonSocket::~EdisonSocket(){
 }
 
 void EdisonSocket::readLine(void){
-    while(running){
+    while(!gameover){
         FD_ZERO(&readset);
         FD_SET(fd, &readset);
         int result = select(fd+1, &readset, NULL, NULL, NULL);

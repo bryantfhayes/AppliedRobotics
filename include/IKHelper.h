@@ -9,8 +9,8 @@
 #define Y_MIN_PWM  915
 #define Z_MAX_PWM  1586
 #define Z_MIN_PWM  915
-#define X_MAX_ANGLE  60
-#define X_MIN_ANGLE  -60
+#define X_MAX_ANGLE  57
+#define X_MIN_ANGLE  -63
 #define Y_MAX_ANGLE  185
 #define Y_MIN_ANGLE  104
 #define Z_MAX_ANGLE  65
@@ -22,6 +22,9 @@
 
 #define PI 3.141592653
 
+//
+// Prototypes
+//
 void angle_to_pwm(double g, double a, double b, int temp_pwm[]);
 
 int interp(double n, int x1, int x2, int y1, int y2);

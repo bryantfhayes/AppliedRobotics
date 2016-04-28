@@ -61,7 +61,7 @@ typedef struct location_t {
 //
 // GLOBAL VARIABLES
 //
-static bool running = true;
+static bool running = false;
 static bool gameover = false;
 static time_t last_interrupt_time = 0;
 static EdisonComm* com;
@@ -75,7 +75,7 @@ void sig_handler(int signo) {
         printf("[SHUTTING DOWN]\n");
         running = false;
         if(com != NULL) 
-            com->running = false;
+            com->gameover = true;
         gameover = true;
     }
 }
@@ -88,7 +88,7 @@ void toggleState(void* args){
     time_t interrupt_time = time(0);
     if (difftime(interrupt_time, last_interrupt_time) >= 1) {
         running = !running;
-        com->running = running;
+        //com->gameover = gameover;
         fprintf(stdout, "GAMESTATE:  %s\n", running ? "RUNNING" : "NOT RUNNING");
     }
     last_interrupt_time = interrupt_time;
@@ -136,6 +136,11 @@ int setupPwm(upm::PCA9685 **servos){
     return 0;
 }
 
+void calibrate(void) {
+    fprintf(stdout, "calibrating...\n");
+    fprintf(stdout, "calibration complete!\n");
+}
+
 //
 // Responsible for receiving and parsing input from remote system
 // and then saving servo_values in memory.
@@ -145,8 +150,6 @@ void getCommand(EdisonComm* com, int servo_values[]){
     // Blocking until message is received
     com->readLine();
 
-    // Return if running is FALSE
-    if(!running) return;
 #ifdef DEBUG
     fprintf(stdout, "Got a message: %s\n", com->recvBuffer);
 #endif
@@ -156,31 +159,51 @@ void getCommand(EdisonComm* com, int servo_values[]){
     vector<double> pwms;
     stringstream ss(commandStr);
     double i;
+    string cmd;
 
-    // Parse command string into pwms array
-    while(ss >> i){
-        pwms.push_back(i);
-        if(ss.peek() == ',')
-            ss.ignore();
-    }
-
-    if(pwms.size() == 3){
-        double x = pwms.at(0);
-        double y = pwms.at(1);
-        double z = pwms.at(2);
-        int retval = XYZ_to_PWM(x,y,z,servo_values);
-        if(retval == -1){
-#ifdef DEBUG
-            fprintf(stdout, "\tReceived unreachable coordinates\n");
-#endif
-        } else {
-            for(int i = 0; i < NUM_SERVOS; i++){
-#ifdef DEBUG
-                fprintf(stdout, "\tServo #%d = %d\n", i+1, servo_values[i]);
-#endif
+    // Get Command type
+    if(getline(ss, cmd, ':')){
+        if(cmd == "xyz"){
+            // Parse command string into pwms array
+            while(ss >> i){
+                pwms.push_back(i);
+                if(ss.peek() == ',')
+                    ss.ignore();
             }
+
+            if(pwms.size() == 3){
+                double x = pwms.at(0);
+                double y = pwms.at(1);
+                double z = pwms.at(2);
+                int retval = XYZ_to_PWM(x,y,z,servo_values);
+                if(retval == -1){
+#ifdef DEBUG
+                    fprintf(stdout, "\tReceived unreachable coordinates\n");
+#endif
+                } else {
+                    for(int i = 0; i < NUM_SERVOS; i++){
+#ifdef DEBUG
+                    fprintf(stdout, "\tServo #%d = %d\n", i+1, servo_values[i]);
+#endif
+                    }
+                }
+            }
+        } else if(cmd == "calibrate") {
+            // Calibrate arm and get board orientation
+            calibrate();
+        } else if(cmd == "off") {
+            running = false;
+            fprintf(stdout, "Turning off servos...\n");
+        } else if(cmd == "on") {
+            running = true;
+            fprintf(stdout, "Turning on servos...\n");
         }
+    } else {
+        fprintf(stderr, "Error: No command found in message\n");
+        return;
     }
+
+    
     return;
 }
 
@@ -213,53 +236,65 @@ void* updateThread(void* data){
     static int mod_values[NUM_SERVOS] = {1,1,1};
     int count = 1;
     bool changed = false;
+    bool servosEnabled = true;
     while(!gameover) {
-        // Compare and set the current goal position
-        for(int i = 0; i < NUM_SERVOS; i++){
-            pthread_mutex_lock(&my_lock);
-            if(goal_values[i] != future_values[i]){
-                goal_values[0] = future_values[0];
-                goal_values[1] = future_values[1];
-                goal_values[2] = future_values[2];
-                count = 1;
-                int x_diff = abs(goal_values[0]-current_values[0]);
-                //fprintf(stdout, "goal: %d");
-                int y_diff = abs(goal_values[1]-current_values[1]);
-                int z_diff = abs(goal_values[2]-current_values[2]);
-                int biggest_diff = max(max(x_diff, y_diff), z_diff);
-                if(x_diff > 0) mod_values[0] = biggest_diff / x_diff;
-                if(y_diff > 0) mod_values[1] = biggest_diff / y_diff;
-                if(z_diff > 0) mod_values[2] = biggest_diff / z_diff;
-                fprintf(stdout, "diffs- x:%d, y:%d, z:%d\n", x_diff, y_diff, z_diff);
-                fprintf(stdout, "mods- x:%d, y:%d, z:%d\n", mod_values[0], mod_values[1], mod_values[2]);
-                pthread_mutex_unlock(&my_lock);
-                break;
-            }
-            pthread_mutex_unlock(&my_lock);
+        if(!running && servosEnabled) {
+            servosEnabled = false;
+            servos->setModeSleep(true);
+        } else if (running && !servosEnabled) {
+            servosEnabled = true;
+            servos->setModeSleep(false);
+            usleep(100000);
         }
+        while(running) {
+            // Compare and set the current goal position
+            for(int i = 0; i < NUM_SERVOS; i++){
+                pthread_mutex_lock(&my_lock);
+                if(goal_values[i] != future_values[i]){
+                    goal_values[0] = future_values[0];
+                    goal_values[1] = future_values[1];
+                    goal_values[2] = future_values[2];
+                    count = 1;
+                    int x_diff = abs(goal_values[0]-current_values[0]);
+                    //fprintf(stdout, "goal: %d");
+                    int y_diff = abs(goal_values[1]-current_values[1]);
+                    int z_diff = abs(goal_values[2]-current_values[2]);
+                    int biggest_diff = max(max(x_diff, y_diff), z_diff);
+                    if(x_diff > 0) mod_values[0] = biggest_diff / x_diff;
+                    if(y_diff > 0) mod_values[1] = biggest_diff / y_diff;
+                    if(z_diff > 0) mod_values[2] = biggest_diff / z_diff;
+                    //fprintf(stdout, "diffs- x:%d, y:%d, z:%d\n", x_diff, y_diff, z_diff);
+                    //fprintf(stdout, "mods- x:%d, y:%d, z:%d\n", mod_values[0], mod_values[1], mod_values[2]);
+                    pthread_mutex_unlock(&my_lock);
+                    break;
+                }
+                pthread_mutex_unlock(&my_lock);
+            }
 
-        // Check to see if any values changed, and adjust
-        changed = false;
-        for(int i = 0; i < NUM_SERVOS; i++){
-            // check if it is allowed to move yet
-            if(count % mod_values[i] == 0){
-                if(goal_values[i] > current_values[i]) {
-                    current_values[i]++;
-                    changed = true;
-                } else if (goal_values[i] < current_values[i]){
-                    current_values[i]--;
-                    changed = true;
+            // Check to see if any values changed, and adjust
+            changed = false;
+            for(int i = 0; i < NUM_SERVOS; i++){
+                // check if it is allowed to move yet
+                if(count % mod_values[i] == 0){
+                    if(goal_values[i] > current_values[i]) {
+                        current_values[i]++;
+                        changed = true;
+                    } else if (goal_values[i] < current_values[i]){
+                        current_values[i]--;
+                        changed = true;
+                    }
                 }
             }
+            count++;
+            // Update servos if any values changed
+            if(changed) {
+                updateServos(servos, current_values);
+                //fprintf(stdout,"UPDATE!\n");
+            }
+            // I think this value will control speed
+            usleep(7500);
         }
-        count++;
-        // Update servos if any values changed
-        if(changed) {
-            updateServos(servos, current_values);
-            //fprintf(stdout,"UPDATE!\n");
-        }
-        // I think this value will control speed
-        usleep(10000);
+
     }
     pthread_exit(NULL);
 }
@@ -304,58 +339,6 @@ void setupComms(int mode){
 }
 
 //
-// Responsible for all test code and performing misc tests
-//
-void testFunction(upm::PCA9685 *servos, int servo_values[]) {
-    printf("TEST CODE ACTIVE\n");
-    location_t locations[5] = {{-10,41,-19},{-10,35,-19},{0,35,-19},{4,39,-19},{7,35,-19}};
-    char input[MSG_SIZE];
-    while(!gameover){
-       
-        printf("Enter PWM values [a,b,c]:");
-            scanf("%s", input);
-
-            // Analyze serial message
-            string commandStr = string(input);
-            vector<double> pwms;
-            stringstream ss(commandStr);
-            double i;
-
-            // Parse command string into pwms array
-            while(ss >> i){
-                pwms.push_back(i);
-                if(ss.peek() == ',')
-                    ss.ignore();
-            }
-
-            if(pwms.size() == 3){
-                /*
-                double g, a, b;
-                g = (double)pwms.at(0);
-                a = (double)pwms.at(1);
-                b = (double)pwms.at(2);
-                // Determine PWM values
-                angle_to_pwm(g, a, b, test_values);
-                // map pwm values to range required for 1/4096 resolution
-                scale_pwm(test_values);
-                */
-                pthread_mutex_lock(&my_lock);
-                servo_values[0] = (double)pwms.at(0);
-                servo_values[1] = (double)pwms.at(1);
-                servo_values[2] = (double)pwms.at(2);
-                pthread_mutex_unlock(&my_lock);
-        }
-        /*
-        for(int i = 0; i < 5; i++){
-            if(gameover) break;
-            XYZ_to_PWM(locations[i].x,locations[i].y,locations[i].z,servo_values);
-            sleep(4);
-        }
-        */
-    }
-}
-
-//
 // Main 
 //
 int main(int argc, char* argv[]) { 
@@ -365,39 +348,37 @@ int main(int argc, char* argv[]) {
     upm::PCA9685 *servos;
     int retval;
     int rPtr;
-    
+    bool notRunYet = true;
+    pthread_t thread;
+
     // Setup
     setupInterrupts();
     setupEnvironment(argc, argv, &mode);
     setupComms(mode);
-    setupPwm(&servos);
+    //setupPwm(&servos);
 
-    // Create a new thread to handle servo updates
-    servo_thread_struct data = {servos, servo_values};
-    pthread_t thread;
-    retval = pthread_create(&thread, NULL, updateThread, (void *)&data);
-    if(retval) {
-        fprintf(stderr, "Error: Unable to create thread\n");
-        exit(-1);
-    }
-
-    // Run in test mode, or normal
-    if(mode == TEST_MODE){
-        testFunction(servos, servo_values);
-    } else {
-        // Main Loop
-        while(!gameover){
-            // Game control loop
-            while(running){
-                getCommand(com, servo_values);
-                //updateServos(servos, servo_values);
+    // Main Loop
+    while(!gameover){
+        getCommand(com, servo_values);
+        if(running && notRunYet){
+            notRunYet = false;
+            setupPwm(&servos);
+            // Create a new thread to handle servo updates
+            servo_thread_struct data = {servos, servo_values};
+            retval = pthread_create(&thread, NULL, updateThread, (void *)&data);
+            if(retval) {
+                fprintf(stderr, "Error: Unable to create thread\n");
+                exit(-1);
             }
         }
     }
 
-    // Wait until update thread exits successfully
-    pthread_join(thread, (void**)&rPtr);
-    fprintf(stdout, "\n return value from update thread is [%d]\n", rPtr);
+    // Join thread if it was created
+    if(!notRunYet){
+        // Wait until update thread exits successfully
+        pthread_join(thread, (void**)&rPtr);
+        fprintf(stdout, "\n return value from update thread is [%d]\n", rPtr);
+    }
 
     // Clean up memory
     delete servos;

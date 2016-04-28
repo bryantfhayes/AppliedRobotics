@@ -11,7 +11,7 @@
 class EdisonComm{
     public:
         EdisonComm();
-        bool running;
+        bool gameover;
         char recvBuffer[MAX_MSG_SIZE];
         char sendBuffer[MAX_MSG_SIZE];
         virtual void readLine(void)  = 0;
