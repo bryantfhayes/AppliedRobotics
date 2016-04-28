@@ -3,13 +3,13 @@
 
 #define NUM_SERVOS 3
 
-#define X_MAX_PWM  854
-#define X_MIN_PWM  2075
+#define X_MAX_PWM  1037
+#define X_MIN_PWM  2136
 #define Y_MAX_PWM  1678
 #define Y_MIN_PWM  915
 #define Z_MAX_PWM  1586
 #define Z_MIN_PWM  915
-#define X_MAX_ANGLE  70
+#define X_MAX_ANGLE  60
 #define X_MIN_ANGLE  -60
 #define Y_MAX_ANGLE  185
 #define Y_MIN_ANGLE  104
@@ -22,7 +22,7 @@
 
 #define PI 3.141592653
 
-void angle_to_pwm(double g, double a, double b, int pwm_values[]);
+void angle_to_pwm(double g, double a, double b, int temp_pwm[]);
 
 int interp(double n, int x1, int x2, int y1, int y2);
 
@@ -34,9 +34,9 @@ double get_alpha(double x, double y, double z);
 
 double get_beta(double x, double y, double z);
 
-void scale_pwm(int pwm_values[]);
+void scale_pwm(int temp_pwm[], int servo_values[]);
 
-int XYZ_to_PWM(double x, double y, double z, int pwm_values[]);
+int XYZ_to_PWM(double x, double y, double z, int servo_values[]);
 
 #endif
 

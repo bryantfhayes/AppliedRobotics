@@ -13,8 +13,8 @@ SRCEXT := cpp
 SOURCES := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
 OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
 CFLAGS := -g # -Wall
-LIB := -lmraa
-LIBTEST := -lmraa
+LIB := -lmraa -lpthread
+LIBTEST := -lmraa -lpthread
 INC := -I include -std=c++11
 
 $(TARGET): $(OBJECTS)

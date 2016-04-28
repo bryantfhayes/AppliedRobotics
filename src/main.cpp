@@ -9,6 +9,8 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <pthread.h>
+#include <cstdlib>
 #include "mraa.hpp"
 #include <string.h>
 #include "EdisonComm.h"
@@ -23,7 +25,7 @@
 #define FALSE 0
 #define SERIAL_PORT "/dev/ttyMFD1"
 #define SERVO_PERIOD 20000
-#define DEFAULT_PWM 1245
+#define DEFAULT_SCALED_PWM 1245
 #define MSG_SIZE 32
 #define SERIAL_MODE 0
 #define WIRELESS_MODE 1
@@ -31,16 +33,30 @@
 #define TEST_MODE 3
 
 // Servo safety bounds
-#define SERVO_X_MIN 700
+#define SERVO_X_MIN 850
 #define SERVO_X_MAX 1750
 #define SERVO_Y_MIN 750
 #define SERVO_Y_MAX 1375
 #define SERVO_Z_MIN 750
 #define SERVO_Z_MAX 1600
 
-#define DEBUG 1
+//#define DEBUG 1
+
+inline int max ( int a, int b ) { return a > b ? a : b; }
 
 using namespace std;
+
+// Struct for passing information to pthread
+typedef struct servo_thread_struct {
+    upm::PCA9685 *servos;
+    int* servo_values;
+} servo_thread_struct;
+
+typedef struct location_t {
+    int x;
+    int y;
+    int z;
+} location_t;
 
 //
 // GLOBAL VARIABLES
@@ -49,6 +65,7 @@ static bool running = true;
 static bool gameover = false;
 static time_t last_interrupt_time = 0;
 static EdisonComm* com;
+pthread_mutex_t my_lock;
 
 //
 // Responsible for handling CTRL-C interrupt.
@@ -107,14 +124,14 @@ int setupPwm(upm::PCA9685 **servos){
 
 
     (*servos)->ledOnTime(PCA9685_ALL_LED, 0);
-    (*servos)->ledOffTime(PCA9685_ALL_LED, DEFAULT_PWM);
+    (*servos)->ledOffTime(PCA9685_ALL_LED, DEFAULT_SCALED_PWM);
 
 
     sleep(1);
 
     for(int i = 0; i < NUM_SERVOS; i++){
         (*servos)->ledOnTime(i, 0);
-        (*servos)->ledOffTime(i, DEFAULT_PWM);
+        (*servos)->ledOffTime(i, DEFAULT_SCALED_PWM);
     }
     return 0;
 }
@@ -184,6 +201,70 @@ void updateServos(upm::PCA9685* servos, int servo_values[]){
 }
 
 //
+// An extra thread is created and continuosly updates the servo positions
+//
+void* updateThread(void* data){
+    int* future_values = ((servo_thread_struct*)data)->servo_values;
+    upm::PCA9685* servos = ((servo_thread_struct*)data)->servos;
+    pthread_mutex_lock(&my_lock);
+    static int current_values[NUM_SERVOS] = {future_values[0], future_values[1], future_values[2]};
+    static int goal_values[NUM_SERVOS] = {future_values[0], future_values[1], future_values[2]};
+    pthread_mutex_unlock(&my_lock);
+    static int mod_values[NUM_SERVOS] = {1,1,1};
+    int count = 1;
+    bool changed = false;
+    while(!gameover) {
+        // Compare and set the current goal position
+        for(int i = 0; i < NUM_SERVOS; i++){
+            pthread_mutex_lock(&my_lock);
+            if(goal_values[i] != future_values[i]){
+                goal_values[0] = future_values[0];
+                goal_values[1] = future_values[1];
+                goal_values[2] = future_values[2];
+                count = 1;
+                int x_diff = abs(goal_values[0]-current_values[0]);
+                //fprintf(stdout, "goal: %d");
+                int y_diff = abs(goal_values[1]-current_values[1]);
+                int z_diff = abs(goal_values[2]-current_values[2]);
+                int biggest_diff = max(max(x_diff, y_diff), z_diff);
+                if(x_diff > 0) mod_values[0] = biggest_diff / x_diff;
+                if(y_diff > 0) mod_values[1] = biggest_diff / y_diff;
+                if(z_diff > 0) mod_values[2] = biggest_diff / z_diff;
+                fprintf(stdout, "diffs- x:%d, y:%d, z:%d\n", x_diff, y_diff, z_diff);
+                fprintf(stdout, "mods- x:%d, y:%d, z:%d\n", mod_values[0], mod_values[1], mod_values[2]);
+                pthread_mutex_unlock(&my_lock);
+                break;
+            }
+            pthread_mutex_unlock(&my_lock);
+        }
+
+        // Check to see if any values changed, and adjust
+        changed = false;
+        for(int i = 0; i < NUM_SERVOS; i++){
+            // check if it is allowed to move yet
+            if(count % mod_values[i] == 0){
+                if(goal_values[i] > current_values[i]) {
+                    current_values[i]++;
+                    changed = true;
+                } else if (goal_values[i] < current_values[i]){
+                    current_values[i]--;
+                    changed = true;
+                }
+            }
+        }
+        count++;
+        // Update servos if any values changed
+        if(changed) {
+            updateServos(servos, current_values);
+            //fprintf(stdout,"UPDATE!\n");
+        }
+        // I think this value will control speed
+        usleep(10000);
+    }
+    pthread_exit(NULL);
+}
+
+//
 // Responsible for parsing command line arguements and determining
 // which mode to run in.
 //
@@ -223,31 +304,15 @@ void setupComms(int mode){
 }
 
 //
-// Main 
+// Responsible for all test code and performing misc tests
 //
-int main(int argc, char* argv[]) { 
-    // Variables
-    int servo_values[NUM_SERVOS];
-    int mode = CONSOLE_MODE; //DEFAULT
-    upm::PCA9685 *servos;
-    
-    // Setup
-    setupInterrupts();
-    setupEnvironment(argc, argv, &mode);
-    setupComms(mode);
-    setupPwm(&servos);
-
-    // TEST CODE HERE
-    if(mode == TEST_MODE){
-        printf("TEST CODE ACTIVE\n");
-        int test_values[NUM_SERVOS] = {1244, 1244, 1244};
-        updateServos(servos, test_values);       
-
-        sleep(1);
-
-        char input[MSG_SIZE];
-        while(!gameover){
-            printf("Enter PWM values [a,b,c]:");
+void testFunction(upm::PCA9685 *servos, int servo_values[]) {
+    printf("TEST CODE ACTIVE\n");
+    location_t locations[5] = {{-10,41,-19},{-10,35,-19},{0,35,-19},{4,39,-19},{7,35,-19}};
+    char input[MSG_SIZE];
+    while(!gameover){
+       
+        printf("Enter PWM values [a,b,c]:");
             scanf("%s", input);
 
             // Analyze serial message
@@ -274,31 +339,65 @@ int main(int argc, char* argv[]) {
                 // map pwm values to range required for 1/4096 resolution
                 scale_pwm(test_values);
                 */
-                
-                test_values[0] = (double)pwms.at(0);
-                test_values[1] = (double)pwms.at(1);
-                test_values[2] = (double)pwms.at(2);
-                
-                updateServos(servos, test_values);
+                pthread_mutex_lock(&my_lock);
+                servo_values[0] = (double)pwms.at(0);
+                servo_values[1] = (double)pwms.at(1);
+                servo_values[2] = (double)pwms.at(2);
+                pthread_mutex_unlock(&my_lock);
+        }
+        /*
+        for(int i = 0; i < 5; i++){
+            if(gameover) break;
+            XYZ_to_PWM(locations[i].x,locations[i].y,locations[i].z,servo_values);
+            sleep(4);
+        }
+        */
+    }
+}
+
+//
+// Main 
+//
+int main(int argc, char* argv[]) { 
+    // Variables
+    int servo_values[NUM_SERVOS] = {DEFAULT_SCALED_PWM,DEFAULT_SCALED_PWM,DEFAULT_SCALED_PWM};
+    int mode = CONSOLE_MODE; //DEFAULT
+    upm::PCA9685 *servos;
+    int retval;
+    int rPtr;
+    
+    // Setup
+    setupInterrupts();
+    setupEnvironment(argc, argv, &mode);
+    setupComms(mode);
+    setupPwm(&servos);
+
+    // Create a new thread to handle servo updates
+    servo_thread_struct data = {servos, servo_values};
+    pthread_t thread;
+    retval = pthread_create(&thread, NULL, updateThread, (void *)&data);
+    if(retval) {
+        fprintf(stderr, "Error: Unable to create thread\n");
+        exit(-1);
+    }
+
+    // Run in test mode, or normal
+    if(mode == TEST_MODE){
+        testFunction(servos, servo_values);
+    } else {
+        // Main Loop
+        while(!gameover){
+            // Game control loop
+            while(running){
+                getCommand(com, servo_values);
+                //updateServos(servos, servo_values);
             }
-            
-        }
-
-        // Clean up memory
-        delete servos;
-        if(mode == SERIAL_MODE)
-            delete com; 
-        return 0;
-    }
-
-    // Main Loop
-    while(!gameover){
-        // Game control loop
-        while(running){
-            getCommand(com, servo_values);
-            updateServos(servos, servo_values);
         }
     }
+
+    // Wait until update thread exits successfully
+    pthread_join(thread, (void**)&rPtr);
+    fprintf(stdout, "\n return value from update thread is [%d]\n", rPtr);
 
     // Clean up memory
     delete servos;

@@ -2,10 +2,12 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <pthread.h>
 
 static double theta = 0.0;
+extern pthread_mutex_t my_lock;
 
-void angle_to_pwm(double g, double a, double b, int pwm_values[]){
+void angle_to_pwm(double g, double a, double b, int temp_pwm[]){
     double pwm_x = interp(g,X_MIN_ANGLE,X_MAX_ANGLE,X_MIN_PWM,X_MAX_PWM);
     double pwm_y = interp(a,Y_MIN_ANGLE,Y_MAX_ANGLE,Y_MIN_PWM,Y_MAX_PWM);
     // Calculate current beta degrees due to mechanical structure
@@ -18,9 +20,9 @@ void angle_to_pwm(double g, double a, double b, int pwm_values[]){
     // map servo_z rotation
     double pwm_z = interp(delta_b,Z_MIN_ANGLE,Z_MAX_ANGLE+bonusAngle,Z_MIN_PWM,Z_MAX_PWM+bonusPwm);
     // Save and return
-    pwm_values[0] = pwm_x;
-    pwm_values[1] = pwm_y;
-    pwm_values[2] = pwm_z;
+    temp_pwm[0] = pwm_x;
+    temp_pwm[1] = pwm_y;
+    temp_pwm[2] = pwm_z;
 
     //for(int i = 0; i < NUM_SERVOS; i++){
     //   fprintf(stdout, "raw_pwm %d = %d\n", i, pwm_values[i]);
@@ -72,13 +74,17 @@ double get_beta(double x, double y, double z){
     return rads_to_degs(b);
 }
 
-void scale_pwm(int pwm_values[]){
+void scale_pwm(int pwms[], int servo_values[]){
+    pthread_mutex_lock(&my_lock);
     for(int i = 0; i < NUM_SERVOS; i++){
-        pwm_values[i] = interp(pwm_values[i], 900, 2100, 736, 1717);
+        servo_values[i] = interp(pwms[i], 900, 2100, 736, 1717);
     }
+    pthread_mutex_unlock(&my_lock);
 }
 
-int XYZ_to_PWM(double x, double y, double z, int pwm_values[]){
+int XYZ_to_PWM(double x, double y, double z, int servo_values[]){
+    int temp_pwm[NUM_SERVOS];
+
     // Determine required joint angles
     double g = get_gamma(x,y,z);
     double a = get_alpha(x-(22*sin(theta)),y-(22*cos(theta)),z+16);
@@ -90,9 +96,9 @@ int XYZ_to_PWM(double x, double y, double z, int pwm_values[]){
         return -1;
     }
     // Determine PWM values
-    angle_to_pwm(g, a, b, pwm_values);
+    angle_to_pwm(g, a, b, temp_pwm);
     // map pwm values to range required for 1/4096 resolution
-    scale_pwm(pwm_values);
+    scale_pwm(temp_pwm, servo_values);
 
     return 0;
 }
