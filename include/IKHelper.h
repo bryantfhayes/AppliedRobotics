@@ -25,9 +25,9 @@
 //
 // Prototypes
 //
-void angle_to_pwm(double g, double a, double b, int temp_pwm[]);
+void angle_to_pwm(double g, double a, double b, double temp_pwm[]);
 
-int interp(double n, int x1, int x2, int y1, int y2);
+double interp(double n, int x1, int x2, int y1, int y2);
 
 double rads_to_degs(double x);
 
@@ -37,7 +37,7 @@ double get_alpha(double x, double y, double z);
 
 double get_beta(double x, double y, double z);
 
-void scale_pwm(int temp_pwm[], int servo_values[]);
+void scale_pwm(double temp_pwm[], int servo_values[]);
 
 int XYZ_to_PWM(double x, double y, double z, int servo_values[]);
 

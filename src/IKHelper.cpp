@@ -7,7 +7,7 @@
 static double theta = 0.0;
 extern pthread_mutex_t my_lock;
 
-void angle_to_pwm(double g, double a, double b, int temp_pwm[]){
+void angle_to_pwm(double g, double a, double b, double temp_pwm[]){
     double pwm_x = interp(g,X_MIN_ANGLE,X_MAX_ANGLE,X_MIN_PWM,X_MAX_PWM);
     double pwm_y = interp(a,Y_MIN_ANGLE,Y_MAX_ANGLE,Y_MIN_PWM,Y_MAX_PWM);
     // Calculate current beta degrees due to mechanical structure
@@ -32,7 +32,20 @@ void angle_to_pwm(double g, double a, double b, int temp_pwm[]){
     return; 
 }
 
-int interp(double n, int x1, int x2, int y1, int y2){
+double interp(double n, int x1, int x2, int y1, int y2){
+    double newRange = y2 - y1;
+    double oldRange = x2 - x1;
+    double newValue;
+
+    if(oldRange == 0) {
+        newValue = y1;
+    } else {
+        newValue = (((n - x1)*newRange) / oldRange) + y1;
+    }
+
+    return newValue;
+
+
     double slope = 1.0 * (y2 - y1) / (x2 - x1);
     int output = y1 + round(slope * (n - x1));
     if((y2 > y1) && (output > y2)) return y2;
@@ -74,16 +87,16 @@ double get_beta(double x, double y, double z){
     return rads_to_degs(b);
 }
 
-void scale_pwm(int pwms[], int servo_values[]){
+void scale_pwm(double pwms[], int servo_values[]){
     pthread_mutex_lock(&my_lock);
     for(int i = 0; i < NUM_SERVOS; i++){
-        servo_values[i] = interp(pwms[i], 900, 2100, 736, 1717);
+        servo_values[i] = round(interp(pwms[i], 900, 2100, 736, 1717));
     }
     pthread_mutex_unlock(&my_lock);
 }
 
 int XYZ_to_PWM(double x, double y, double z, int servo_values[]){
-    int temp_pwm[NUM_SERVOS];
+    double temp_pwm[NUM_SERVOS];
 
     // Determine required joint angles
     double g = get_gamma(x,y,z);
