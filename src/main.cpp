@@ -66,6 +66,8 @@ static bool gameover = false;
 static time_t last_interrupt_time = 0;
 static EdisonComm* com;
 pthread_mutex_t my_lock;
+mraa::Aio* a0;
+
 
 //
 // Responsible for handling CTRL-C interrupt.
@@ -141,6 +143,19 @@ void calibrate(void) {
     fprintf(stdout, "calibration complete!\n");
 }
 
+bool isFishHooked() {
+    uint16_t adc_value;
+    for(int i = 0; i < 5; i++) {
+        adc_value = a0->read();
+        fprintf(stdout, "fish test #%d: %d\n", i, adc_value);
+        if(adc_value < 288) {
+            return false;
+        }
+        usleep(10000);
+    }
+    return true;
+}
+
 //
 // Responsible for receiving and parsing input from remote system
 // and then saving servo_values in memory.
@@ -197,6 +212,8 @@ void getCommand(EdisonComm* com, int servo_values[]){
         } else if(cmd == "on") {
             running = true;
             fprintf(stdout, "Turning on servos...\n");
+        } else if(cmd == "fishCheck") {
+            fprintf(stdout, "Fish is %shooked\n", isFishHooked() ? "" : "not ");
         }
     } else {
         fprintf(stderr, "Error: No command found in message\n");
@@ -327,6 +344,14 @@ int setupEnvironment(int argc, char* argv[], int* mode){
             abort ();
         }
     }
+
+    // Initialize ADC
+    a0 = new mraa::Aio(0);
+    if(a0 == NULL){
+        fprintf(stderr, "Could not Initialize ADC\n");
+        exit(-1);
+    }
+
     return 0;
 }
 
@@ -336,6 +361,27 @@ int setupEnvironment(int argc, char* argv[], int* mode){
 void setupComms(int mode){
   com = EdisonComm::initComm(mode);
   return;
+}
+
+void testFunction(){
+    uint16_t adc_value;
+    float adc_value_float;
+
+    while (!gameover) {
+        adc_value = a0->read();
+        adc_value_float = a0->readFloat();
+        fprintf(stdout, "ADC A0 Read %X - %d\n", adc_value, adc_value);
+        fprintf(stdout, "ADC A0 Float Read - %.5f\n", adc_value_float);
+        usleep(50000);
+    }
+    /*
+    com = EdisonComm::initComm(SERIAL_MODE);
+    while(!gameover){  
+        com->readLine();
+        printf("Received Message: %s\n", com->recvBuffer);
+    }
+    delete com;
+    */
 }
 
 //
@@ -354,6 +400,10 @@ int main(int argc, char* argv[]) {
     // Setup
     setupInterrupts();
     setupEnvironment(argc, argv, &mode);
+
+    //testFunction();
+    //exit(1);
+
     setupComms(mode);
     //setupPwm(&servos);
 
@@ -384,6 +434,9 @@ int main(int argc, char* argv[]) {
     delete servos;
     if(mode == SERIAL_MODE)
         delete com; 
+    if(a0 != NULL){
+        delete a0;
+    }
 
     return MRAA_SUCCESS;
 }
