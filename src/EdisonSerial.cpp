@@ -44,7 +44,7 @@ void EdisonSerial::readLine(void){
        if(_uart->dataAvailable()){
             n = _uart->read(tempBuf, MAX_MSG_SIZE);
             for(int i = 0; i < n; i++){
-                if(tempBuf[i] != '\n'){
+                if(tempBuf[i] != '\r'){
                     printf("added to buffer\n");
                     recvBuffer[idx] = tempBuf[i];
                     idx++;
@@ -57,11 +57,11 @@ void EdisonSerial::readLine(void){
    }
 }
 
-void EdisonSerial::writeLine(char* msg, int max_msg_size){
-    char message[max_msg_size+1];
-    sprintf(message, "%s%c", msg);
-    printf("sending: %s\n", message);
-    int result = _uart->write(message, max_msg_size+1);
+void EdisonSerial::writeLine(char* msg){
+    char message[MAX_MSG_SIZE];
+    sprintf(message, "%s\r", msg);
+    //printf("sending: %s with message length %d\n", message, strlen(message));
+    int result = _uart->writeStr(message);
     if(result == -1){
         perror("Problem sending serial data:");
     }

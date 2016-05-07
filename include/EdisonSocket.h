@@ -12,7 +12,7 @@ class EdisonSocket : public EdisonComm{
         EdisonSocket();
         ~EdisonSocket();
         void readLine(void);
-        void writeLine(char*,int);
+        void writeLine(char*);
     private:
         int _sockNum;
         fd_set readset;

@@ -67,7 +67,7 @@ void EdisonSocket::readLine(void){
     }
 }
 
-void EdisonSocket::writeLine(char* msg, int max_msg_size){
+void EdisonSocket::writeLine(char* msg){
     sprintf(sendBuffer, msg);
     if (sendto(fd, sendBuffer, strlen(sendBuffer), 0, (struct sockaddr *)&remaddr, sizeof(remaddr))==-1)
         perror("sendto");

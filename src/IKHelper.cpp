@@ -27,7 +27,7 @@ void angle_to_pwm(double g, double a, double b, double temp_pwm[]){
     //for(int i = 0; i < NUM_SERVOS; i++){
     //   fprintf(stdout, "raw_pwm %d = %d\n", i, pwm_values[i]);
     //}
-    fprintf(stdout, "angles: g: %lf, a: %lf, b: %lf\n", g, a, b);
+    //fprintf(stdout, "angles: g: %lf, a: %lf, b: %lf\n", g, a, b);
 
     return; 
 }

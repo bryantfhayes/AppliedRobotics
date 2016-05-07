@@ -16,6 +16,6 @@ void EdisonConsole::readLine(void){
    cin >> recvBuffer;
 }
 
-void EdisonConsole::writeLine(char* msg, int max_msg_size){
+void EdisonConsole::writeLine(char* msg){
     fprintf(stdout, "%s\n", msg);
 }

@@ -7,7 +7,7 @@ class EdisonConsole : public EdisonComm {
     public:
         EdisonConsole();
         void readLine(void);
-        void writeLine(char*,int);
+        void writeLine(char*);
 };
 
 #endif
