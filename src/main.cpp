@@ -14,6 +14,7 @@
 #include "mraa.hpp"
 #include <string.h>
 #include "EdisonComm.h"
+#include "CognexSerial.h"
 #include <time.h>
 #include "pca9685.h"
 #include "IKHelper.h"
@@ -59,7 +60,7 @@ typedef struct location_t {
 } location_t;
 
 enum state_t {
-    idle, calibrate
+    idle, calibrate_arm, calibrate_cam
 };
 
 //
@@ -68,34 +69,47 @@ enum state_t {
 static bool running = false;
 static bool gameover = false;
 static time_t last_interrupt_time = 0;
-static EdisonComm* com;
+static EdisonComm* edisonCom;
+static CognexSerial* cognexCom;
 pthread_mutex_t my_lock;
 mraa::Aio* a0;
 state_t curr_state = idle;
 
 
 void idle_state_func(void* data) {
-    printf("idle state!\n");
     running = false;
     while(curr_state == idle && !gameover){}
     return;
 }
 
-void calibrate_state_func(void* data) {
+void calibrate_arm_state_func(void* data) {
     int* servo_values = ((servo_thread_struct*)data)->servo_values;
     running = true;
     XYZ_to_PWM(0,39,-23,servo_values);
-    while(curr_state == calibrate && !gameover){
-        if(curr_state != calibrate) break;
+    while(curr_state == calibrate_arm && !gameover){
+        if(curr_state != calibrate_arm) break;
         usleep(5000000);
         XYZ_to_PWM(-10,39,-23,servo_values);
-        if(curr_state != calibrate) break;
+        if(curr_state != calibrate_arm) break;
         usleep(7500000);
         XYZ_to_PWM(10,39,-23,servo_values);
-        if(curr_state != calibrate) break;
+        if(curr_state != calibrate_arm) break;
         usleep(5000000);
         XYZ_to_PWM(0,39,-23,servo_values);
         
+    }
+    return;
+}
+
+void calibrate_cam_state_func(void* data) {
+    int* servo_values = ((servo_thread_struct*)data)->servo_values;
+    running = false;
+    printf("sending message to cam\n");
+    double retval = cognexCom->getValue('b',0);
+    cognexCom->setOnline(true);
+    printf("Got response from camera: %lf\n", retval);
+    while(curr_state == calibrate_cam && !gameover){
+
     }
     return;
 }
@@ -104,7 +118,7 @@ void calibrate_state_func(void* data) {
 // Monitor state and update internal state machine to drive gameplay
 //
 void* updateState(void* data){
-    void (* state[])(void*) = {idle_state_func, calibrate_state_func};
+    void (* state[])(void*) = {idle_state_func, calibrate_arm_state_func, calibrate_cam_state_func};
     void (* fn)(void*);
     while(!gameover) {
         fn = state[curr_state];
@@ -214,8 +228,8 @@ void sig_handler(int signo) {
     if (signo == SIGINT) {
         printf("[SHUTTING DOWN]\n");
         running = false;
-        if(com != NULL) 
-            com->gameover = true;
+        if(edisonCom != NULL) 
+            edisonCom->gameover = true;
         gameover = true;
     }
 }
@@ -240,13 +254,13 @@ bool isFishHooked() {
 // Responsible for receiving and parsing input from remote system
 // and then saving servo_values in memory.
 //
-void getCommand(EdisonComm* com, int servo_values[]){
+void getCommand(EdisonComm* edisonCom, int servo_values[]){
 
     // Blocking until message is received
-    com->readLine();
+    edisonCom->readLine();
 
     // Analyze serial message
-    string commandStr = string(com->recvBuffer);
+    string commandStr = string(edisonCom->recvBuffer);
     vector<double> pwms;
     stringstream ss(commandStr);
     double i;
@@ -268,17 +282,14 @@ void getCommand(EdisonComm* com, int servo_values[]){
                 double z = pwms.at(2);
                 int retval = XYZ_to_PWM(x,y,z,servo_values);
             }
-        } else if(cmd == "calibrate") {
-            // Calibrate arm and get board orientation
-            curr_state = calibrate;
+        } else if(cmd == "calibrate_arm") {
+            // Calibrate arm
+            curr_state = calibrate_arm;
+        } else if(cmd == "calibrate_cam") {
+            // Calibrate camera
+            curr_state = calibrate_cam;
         } else if (cmd == "idle"){
             curr_state = idle;
-        } else if(cmd == "off") {
-            running = false;
-            fprintf(stdout, "Turning off servos...\n");
-        } else if(cmd == "on") {
-            running = true;
-            fprintf(stdout, "Turning on servos...\n");
         } else if(cmd == "fishCheck") {
             fprintf(stdout, "Fish is %shooked\n", isFishHooked() ? "" : "not ");
         }
@@ -346,7 +357,8 @@ int setupEnvironment(int argc, char* argv[], int* mode){
 // Responsible for initializing which ever COM mode user decides to use.
 //
 void setupComms(int mode){
-  com = EdisonComm::initComm(mode);
+  edisonCom = EdisonComm::initComm(mode);
+  cognexCom = new CognexSerial;
   return;
 }
 
@@ -414,7 +426,7 @@ int main(int argc, char* argv[]) {
 
     // Main Loop
     while(!gameover){
-        getCommand(com, servo_values);
+        getCommand(edisonCom, servo_values);
     }
 
     // Wait until update thread exits successfully
@@ -425,7 +437,10 @@ int main(int argc, char* argv[]) {
     // Clean up memory
     delete servos;
     if(mode == SERIAL_MODE)
-        delete com; 
+        delete edisonCom; 
+    if(cognexCom != NULL){
+        delete cognexCom;
+    }
     if(a0 != NULL){
         delete a0;
     }

@@ -34,6 +34,10 @@ EdisonSerial::EdisonSerial(){
 
     fprintf(stdout, "SERIAL:     RUNNING\n");
     gameover = false;
+
+    escapeChar = '\r';
+
+    _uart->setTimeout(5,0,0);
 }
 
 void EdisonSerial::readLine(void){
@@ -43,9 +47,9 @@ void EdisonSerial::readLine(void){
    while(!gameover){
        if(_uart->dataAvailable()){
             n = _uart->read(tempBuf, MAX_MSG_SIZE);
+            printf("%s\n", tempBuf);
             for(int i = 0; i < n; i++){
-                if(tempBuf[i] != '\r'){
-                    printf("added to buffer\n");
+                if(tempBuf[i] != escapeChar){
                     recvBuffer[idx] = tempBuf[i];
                     idx++;
                 } else {
