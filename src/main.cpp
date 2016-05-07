@@ -60,7 +60,7 @@ typedef struct location_t {
 } location_t;
 
 enum state_t {
-    idle, calibrate_arm, calibrate_cam
+    idle, calibrate_arm, calibrate_cam, custom
 };
 
 //
@@ -68,12 +68,15 @@ enum state_t {
 //
 static bool running = false;
 static bool gameover = false;
+static bool keypointsReceived = false;
 static time_t last_interrupt_time = 0;
 static EdisonComm* edisonCom;
 static CognexSerial* cognexCom;
 pthread_mutex_t my_lock;
 mraa::Aio* a0;
 state_t curr_state = idle;
+state_t last_state = idle;
+double keypoints[8][2];
 
 
 void idle_state_func(void* data) {
@@ -85,40 +88,30 @@ void idle_state_func(void* data) {
 void calibrate_arm_state_func(void* data) {
     int* servo_values = ((servo_thread_struct*)data)->servo_values;
     running = true;
-    XYZ_to_PWM(0,39,-23,servo_values);
+    XYZ_to_PWM(1.5,39,-23,servo_values);
     while(curr_state == calibrate_arm && !gameover){
-        if(curr_state != calibrate_arm) break;
-        usleep(5000000);
-        XYZ_to_PWM(-10,39,-23,servo_values);
-        if(curr_state != calibrate_arm) break;
-        usleep(7500000);
-        XYZ_to_PWM(10,39,-23,servo_values);
-        if(curr_state != calibrate_arm) break;
-        usleep(5000000);
-        XYZ_to_PWM(0,39,-23,servo_values);
-        
     }
     return;
 }
 
 void calibrate_cam_state_func(void* data) {
     int* servo_values = ((servo_thread_struct*)data)->servo_values;
-    running = false;
-    printf("sending message to cam\n");
-    double retval = cognexCom->getValue('b',0);
-    cognexCom->setOnline(true);
-    printf("Got response from camera: %lf\n", retval);
-    while(curr_state == calibrate_cam && !gameover){
-
-    }
+    cognexCom->getKeypoints(keypoints);
+    keypointsReceived = true;
+    curr_state = last_state;
     return;
+}
+
+void custom_state_func(void* data) {
+    running = true;
+    while(curr_state == custom && !gameover) {}
 }
 
 //
 // Monitor state and update internal state machine to drive gameplay
 //
 void* updateState(void* data){
-    void (* state[])(void*) = {idle_state_func, calibrate_arm_state_func, calibrate_cam_state_func};
+    void (* state[])(void*) = {idle_state_func, calibrate_arm_state_func, calibrate_cam_state_func, custom_state_func};
     void (* fn)(void*);
     while(!gameover) {
         fn = state[curr_state];
@@ -264,6 +257,7 @@ void getCommand(EdisonComm* edisonCom, int servo_values[]){
     vector<double> pwms;
     stringstream ss(commandStr);
     double i;
+    int j;
     string cmd;
 
     // Get Command type
@@ -284,14 +278,26 @@ void getCommand(EdisonComm* edisonCom, int servo_values[]){
             }
         } else if(cmd == "calibrate_arm") {
             // Calibrate arm
+            last_state = curr_state;
             curr_state = calibrate_arm;
         } else if(cmd == "calibrate_cam") {
             // Calibrate camera
+            last_state = curr_state;
             curr_state = calibrate_cam;
         } else if (cmd == "idle"){
             curr_state = idle;
         } else if(cmd == "fishCheck") {
             fprintf(stdout, "Fish is %shooked\n", isFishHooked() ? "" : "not ");
+        } else if(cmd == "custom") {
+            last_state = curr_state;
+            curr_state = custom;
+        } else if(cmd == "kp") {
+            ss >> j;
+            if(j < 8 && keypointsReceived){
+                XYZ_to_PWM(keypoints[j][0],keypoints[j][1],-18,servo_values);
+            } else {
+                printf("No valid keypoints!\n");
+            }
         }
     } else {
         fprintf(stderr, "Error: No command found in message\n");
@@ -388,17 +394,17 @@ int setupPwm(upm::PCA9685 **servos){
     // setup a period of 50Hz
     (*servos)->setPrescaleFromHz(190);
     // wake device up
-    // (*servos)->setModeSleep(false);
+    (*servos)->setModeSleep(false);
 
-    // (*servos)->ledOnTime(PCA9685_ALL_LED, 0);
-    // (*servos)->ledOffTime(PCA9685_ALL_LED, DEFAULT_SCALED_PWM);
+    (*servos)->ledOnTime(PCA9685_ALL_LED, 0);
+    (*servos)->ledOffTime(PCA9685_ALL_LED, DEFAULT_SCALED_PWM);
 
-    // sleep(1);
+    sleep(1);
 
-    // for(int i = 0; i < NUM_SERVOS; i++){
-    //     (*servos)->ledOnTime(i, 0);
-    //     (*servos)->ledOffTime(i, DEFAULT_SCALED_PWM);
-    // }
+    for(int i = 0; i < NUM_SERVOS; i++){
+        (*servos)->ledOnTime(i, 0);
+        (*servos)->ledOffTime(i, DEFAULT_SCALED_PWM);
+    }
     return 0;
 }
 

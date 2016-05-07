@@ -2,6 +2,9 @@
 #define __COGNEXERIAL_H
 #include "EdisonSerial.h"
 #include "mraa.hpp"
+#include <string.h>
+#include <iostream>
+#include <sstream>
 
 #define INSIGHT_SUCCESS 1
 
@@ -17,6 +20,7 @@ class CognexSerial : public EdisonSerial {
         double getValue(char, int);
         int setOnline(bool);
         void readLine(CognexData*);
+        void getKeypoints(double keypoints[][2]);
         CognexData responseData;
 };
 

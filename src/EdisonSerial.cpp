@@ -47,7 +47,7 @@ void EdisonSerial::readLine(void){
    while(!gameover){
        if(_uart->dataAvailable()){
             n = _uart->read(tempBuf, MAX_MSG_SIZE);
-            printf("%s\n", tempBuf);
+            //printf("%s\n", tempBuf);
             for(int i = 0; i < n; i++){
                 if(tempBuf[i] != escapeChar){
                     recvBuffer[idx] = tempBuf[i];
