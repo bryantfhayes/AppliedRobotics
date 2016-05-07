@@ -104,7 +104,7 @@ void setupInterrupts(){
     signal(SIGINT, sig_handler);
 
     // Setup ISR trigger on both edges
-    mraa::Gpio* x = new mraa::Gpio(4);
+    mraa::Gpio* x = new mraa::Gpio(7);
     x->dir(mraa::DIR_IN);
     x->isr(mraa::EDGE_BOTH, &toggleState, NULL);
 
@@ -366,7 +366,7 @@ void setupComms(int mode){
 void testFunction(){
     uint16_t adc_value;
     float adc_value_float;
-
+/*
     while (!gameover) {
         adc_value = a0->read();
         adc_value_float = a0->readFloat();
@@ -374,14 +374,17 @@ void testFunction(){
         fprintf(stdout, "ADC A0 Float Read - %.5f\n", adc_value_float);
         usleep(50000);
     }
-    /*
+*/
+    
+    printf("Waiting for serial message\n");
     com = EdisonComm::initComm(SERIAL_MODE);
     while(!gameover){  
         com->readLine();
         printf("Received Message: %s\n", com->recvBuffer);
+        printf("Sending: HELLO WORLD\n");
+        com->writeLine("HELLO WORLD", 11);
     }
     delete com;
-    */
 }
 
 //
@@ -401,8 +404,8 @@ int main(int argc, char* argv[]) {
     setupInterrupts();
     setupEnvironment(argc, argv, &mode);
 
-    //testFunction();
-    //exit(1);
+    testFunction();
+    exit(1);
 
     setupComms(mode);
     //setupPwm(&servos);
