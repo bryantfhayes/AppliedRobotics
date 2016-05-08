@@ -148,7 +148,7 @@ void CognexSerial::setState(int state) {
       usleep(10000);
       sprintf(buffer, "SI%c%03d%d", 'N', CALIBRATE_STATE, 0);
       writeLine(buffer);
-      usleep(15000000);
+      usleep(17000000);
       flushInput();
       break;  
   }
@@ -158,16 +158,19 @@ void CognexSerial::setState(int state) {
 void CognexSerial::search(double* delay){
   char buffer[256];
   sprintf(buffer, "SI%c%03d%d", 'N', 8, 1);
+  printf("sending %s\n", buffer);
   writeLine(buffer);
-  usleep(10000);
+  usleep(500000);
   flushInput();
 
   EdisonSerial::readLine();
-  *delay = atof(recvBuffer);
+  *delay = atof(recvBuffer) - 500.0;
+  printf("recvBuffer = %s\n", recvBuffer);
+  printf("Fish in %lf milliseconds!\n", *delay);
 
   sprintf(buffer, "SI%c%03d%d", 'N', 8, 0);
   writeLine(buffer);
-  usleep(10000);
+  usleep(500000);
   flushInput();
 
   return;

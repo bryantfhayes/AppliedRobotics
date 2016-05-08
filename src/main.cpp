@@ -134,8 +134,9 @@ void fish_smart_state_func(void* data) {
         usleep(1000000);
         cognexCom->setKeypoint(keypoints, keypoint_idx);
         for(attempt = 0; attempt < 2; attempt++){
+            if(curr_state != fish_smart) return;
             cognexCom->search(&delay);
-            usleep(delay*1000);
+            usleep(delay*1000-1500000);
             XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], downVal, servo_values);
             usleep(6000000);
             XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], upVal, servo_values);
