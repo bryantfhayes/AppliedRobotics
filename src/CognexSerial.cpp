@@ -16,7 +16,6 @@ CognexSerial::~CognexSerial(){
 double CognexSerial::getValue(char col, int row){
 	char buffer[256];
 	sprintf(buffer, "gv%c%03d", col, row);
-	printf("%s\n", buffer);
 	writeLine(buffer);
 	readLine(&responseData);
 	//printf("status code: %d\nmessage: %s\n", responseData.status_code, responseData.message);
@@ -80,6 +79,11 @@ void CognexSerial::getKeypoints(double keypoints[][2]) {
       }
     }
   }
+
+  for(int i = 0; i < 8; i++){
+    unsorted_keypoints[i][0] = keypoints[i][0];
+    unsorted_keypoints[i][1] = keypoints[i][1];
+  }
   sortKeypoints(keypoints);
 
   printf("CALIBRATED NEW KEYPOINTS\n");
@@ -123,6 +127,64 @@ void CognexSerial::readLine(CognexData* data){
             
        }
    }
+}
+
+void CognexSerial::setState(int state) {
+  char buffer[256];
+  printf("Changing to state %d\n", state);
+  switch (state) {
+    case CALIBRATE_STATE:
+      sprintf(buffer, "SI%c%03d%d", 'N', RUN_STATE, 0);
+      writeLine(buffer);
+      usleep(10000);
+      sprintf(buffer, "SI%c%03d%d", 'N', CALIBRATE_STATE, 1);
+      writeLine(buffer);
+      usleep(10000000);
+      flushInput();
+      break;
+    case RUN_STATE:
+      sprintf(buffer, "SI%c%03d%d", 'N', RUN_STATE, 1);
+      writeLine(buffer);
+      usleep(10000);
+      sprintf(buffer, "SI%c%03d%d", 'N', CALIBRATE_STATE, 0);
+      writeLine(buffer);
+      usleep(15000000);
+      flushInput();
+      break;  
+  }
+  
+}
+
+void CognexSerial::search(double* delay){
+  char buffer[256];
+  sprintf(buffer, "SI%c%03d%d", 'N', 8, 1);
+  writeLine(buffer);
+  usleep(10000);
+  flushInput();
+
+  EdisonSerial::readLine();
+  *delay = atof(recvBuffer);
+
+  sprintf(buffer, "SI%c%03d%d", 'N', 8, 0);
+  writeLine(buffer);
+  usleep(10000);
+  flushInput();
+
+  return;
+}
+void CognexSerial::setKeypoint(double keypoints[][2], int idx){
+  char buffer[256];
+  for(int i = 0; i < 8; i++){
+    if(keypoints[idx][0] == unsorted_keypoints[i][0] && keypoints[idx][1] == unsorted_keypoints[i][1]){
+      idx = i;
+      break;
+    }
+  }
+
+  sprintf(buffer, "SI%c%03d%d", 'N', 9, idx);
+  writeLine(buffer);
+  usleep(10000);
+  flushInput();
 }
 
 

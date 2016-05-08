@@ -7,6 +7,8 @@
 #include <sstream>
 
 #define INSIGHT_SUCCESS 1
+#define CALIBRATE_STATE 6
+#define RUN_STATE 7
 
 typedef struct CognexData {
 	int status_code;
@@ -21,7 +23,11 @@ class CognexSerial : public EdisonSerial {
         int setOnline(bool);
         void readLine(CognexData*);
         void getKeypoints(double keypoints[][2]);
+        void setState(int);
+        void search(double* delay);
+        void setKeypoint(double keypoints[][2], int idx);
         CognexData responseData;
+        double unsorted_keypoints[8][2];
 };
 
 #endif
