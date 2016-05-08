@@ -38,6 +38,7 @@ EdisonSerial::EdisonSerial(){
     escapeChar = '\r';
 
     _uart->setTimeout(5,0,0);
+    flushInput();
 }
 
 void EdisonSerial::readLine(void){
@@ -70,4 +71,11 @@ void EdisonSerial::writeLine(char* msg){
         perror("Problem sending serial data:");
     }
 
+}
+
+void EdisonSerial::flushInput(void) {
+    char tmpBuf[256];
+    while(_uart->dataAvailable()) {
+        _uart->read(tmpBuf, 1);
+    }
 }

@@ -10,6 +10,7 @@ class EdisonSerial : public EdisonComm {
         EdisonSerial();
         void readLine(void);
         void writeLine(char*);
+        void flushInput(void);
         char escapeChar;
         mraa::Uart* _uart;
 };

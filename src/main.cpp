@@ -74,6 +74,7 @@ static EdisonComm* edisonCom;
 static CognexSerial* cognexCom;
 pthread_mutex_t my_lock;
 mraa::Aio* a0;
+mraa::Gpio* servoEnablePin;
 state_t curr_state = idle;
 state_t last_state = idle;
 double keypoints[8][2];
@@ -154,11 +155,11 @@ void* updateThread(void* data){
     while(!gameover) {
         if(!running && servosEnabled) {
             servosEnabled = false;
-            servos->setModeSleep(true);
+            servoEnablePin->write(1);
             okToStart = false;
         } else if (running && !servosEnabled) {
             servosEnabled = true;
-            servos->setModeSleep(false);
+            servoEnablePin->write(0);
             usleep(100000);
             okToStart = true;
         }
@@ -356,6 +357,14 @@ int setupEnvironment(int argc, char* argv[], int* mode){
         exit(-1);
     }
 
+    servoEnablePin = new mraa::Gpio(6);
+    if(servoEnablePin == NULL){
+        fprintf(stderr, "cant init servo pin\n");
+        exit(-1);
+    }
+    servoEnablePin->dir(mraa::DIR_OUT);
+    servoEnablePin->write(1);
+
     return 0;
 }
 
@@ -388,6 +397,7 @@ void setupInterrupts(){
 // Responsible for settign up PWM channels.
 //
 int setupPwm(upm::PCA9685 **servos){
+    servoEnablePin->write(1);
     (*servos) = new upm::PCA9685(PCA9685_I2C_BUS,PCA9685_DEFAULT_I2C_ADDR);
     // put device to sleep
     (*servos)->setModeSleep(true);
