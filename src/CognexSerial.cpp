@@ -32,6 +32,29 @@ int CognexSerial::setOnline(bool val){
 	return atoi(recvBuffer);
 }
 
+void sortKeypoints(double keypoints[][2]) {
+  double smallest = 999.9;
+  int smallest_idx = 0;
+  double tmp[2];
+  for(int j = 0; j < 8; j++){
+    smallest_idx = j;
+    smallest = keypoints[j][1];
+    for(int k = j+1; k < 8; k++){
+      if(keypoints[k][1] <= smallest){
+        smallest = keypoints[k][1];
+        smallest_idx = k;
+      }
+    }
+    // SWAP
+    tmp[0] = keypoints[j][0];
+    tmp[1] = keypoints[j][1];
+    keypoints[j][0] = keypoints[smallest_idx][0];
+    keypoints[j][1] = keypoints[smallest_idx][1];
+    keypoints[smallest_idx][0] = tmp[0];
+    keypoints[smallest_idx][1] = tmp[1];
+  }
+}
+
 void CognexSerial::getKeypoints(double keypoints[][2]) {
   int j;
   double i;
@@ -57,6 +80,9 @@ void CognexSerial::getKeypoints(double keypoints[][2]) {
       }
     }
   }
+  sortKeypoints(keypoints);
+
+  printf("CALIBRATED NEW KEYPOINTS\n");
   for(int j = 0; j < 8; j++) {
     printf("Keypoint #%d: %lf, %lf\n", j, keypoints[j][0], keypoints[j][1]);
   }

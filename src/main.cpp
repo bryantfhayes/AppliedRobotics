@@ -41,7 +41,12 @@
 #define SERVO_Z_MIN 750
 #define SERVO_Z_MAX 1600
 
-//#define DEBUG 1
+
+//
+// Prototypes
+//
+void updateServos(upm::PCA9685*, int[]);
+
 
 inline int max ( int a, int b ) { return a > b ? a : b; }
 
@@ -60,7 +65,7 @@ typedef struct location_t {
 } location_t;
 
 enum state_t {
-    idle, calibrate_arm, calibrate_cam, custom
+    idle, calibrate_arm, calibrate_cam, custom, fish_random
 };
 
 //
@@ -108,11 +113,47 @@ void custom_state_func(void* data) {
     while(curr_state == custom && !gameover) {}
 }
 
+void fish_random_state_func(void* data) {
+    running = true;
+    int keypoint_idx = 0;
+    int attempt = 0;
+    int upVal = -16;
+    int downVal = -25;
+    int interval = 0;
+    // Values to fling fish off
+    int flingVals[NUM_SERVOS] = {1750,1350,1000};
+    int lastVals[NUM_SERVOS] = {1750,1350,1000};
+    upm::PCA9685* servos = ((servo_thread_struct*)data)->servos;
+    int* servo_values = ((servo_thread_struct*)data)->servo_values;
+
+    while(curr_state == fish_random && !gameover) {
+        XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], upVal, servo_values);
+        usleep(1000000);
+        for(attempt = 0; attempt < 1; attempt++){
+            interval = rand() % 3 + 1; // 3 to 7 seconds
+            usleep(interval * 1000000);
+            XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], downVal, servo_values);
+            usleep(6000000);
+            XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], upVal, servo_values);
+            usleep(6000000);
+            for(int a = 0; a < NUM_SERVOS; a++){
+                lastVals[a] = servo_values[a];
+            }
+            updateServos(servos, flingVals);
+            usleep(750000);
+            updateServos(servos, lastVals);
+        }
+        keypoint_idx++;
+        if(keypoint_idx >= 8) {
+            keypoint_idx = 0;
+        }
+    }
+}
 //
 // Monitor state and update internal state machine to drive gameplay
 //
 void* updateState(void* data){
-    void (* state[])(void*) = {idle_state_func, calibrate_arm_state_func, calibrate_cam_state_func, custom_state_func};
+    void (* state[])(void*) = {idle_state_func, calibrate_arm_state_func, calibrate_cam_state_func, custom_state_func, fish_random_state_func};
     void (* fn)(void*);
     while(!gameover) {
         fn = state[curr_state];
@@ -208,7 +249,7 @@ void* updateThread(void* data){
                 updateServos(servos, current_values);
             }
             // I think this value will control speed
-            usleep(7500);
+            usleep(7000);
         }
 
     }
@@ -248,8 +289,10 @@ bool isFishHooked() {
 // Responsible for receiving and parsing input from remote system
 // and then saving servo_values in memory.
 //
-void getCommand(EdisonComm* edisonCom, int servo_values[]){
-
+void getCommand(EdisonComm* edisonCom, int servo_values[], upm::PCA9685* servos){
+    // Values to fling fish off
+    int flingVals[NUM_SERVOS] = {1750,1350,1000};
+    int lastVals[NUM_SERVOS] = {1750,1350,1000};
     // Blocking until message is received
     edisonCom->readLine();
 
@@ -299,7 +342,17 @@ void getCommand(EdisonComm* edisonCom, int servo_values[]){
             } else {
                 printf("No valid keypoints!\n");
             }
-        }
+        } else if(cmd == "toss") {
+            for(int a = 0; a < NUM_SERVOS; a++){
+                lastVals[a] = servo_values[a];
+            }
+            updateServos(servos, flingVals);
+            usleep(750000);
+            updateServos(servos, lastVals);
+        } else if(cmd == "fish_random") {
+            last_state = curr_state;
+            curr_state = fish_random;
+        } 
     } else {
         fprintf(stderr, "Error: No command found in message\n");
         return;
@@ -364,6 +417,8 @@ int setupEnvironment(int argc, char* argv[], int* mode){
     }
     servoEnablePin->dir(mraa::DIR_OUT);
     servoEnablePin->write(1);
+
+    srand(time(NULL));
 
     return 0;
 }
@@ -442,7 +497,7 @@ int main(int argc, char* argv[]) {
 
     // Main Loop
     while(!gameover){
-        getCommand(edisonCom, servo_values);
+        getCommand(edisonCom, servo_values, servos);
     }
 
     // Wait until update thread exits successfully
