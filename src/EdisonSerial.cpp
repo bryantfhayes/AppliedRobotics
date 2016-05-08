@@ -38,6 +38,7 @@ EdisonSerial::EdisonSerial(){
     escapeChar = '\r';
 
     _uart->setTimeout(5,0,0);
+    _uart->flush();
     flushInput();
 }
 
