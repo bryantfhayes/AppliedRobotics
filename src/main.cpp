@@ -1,7 +1,7 @@
 //
 // File: main.cpp
 // Author: Bryant Hayes
-// Description: Low level code for controlling robotic arm based on receieved serial commands
+// Description: Low level code for controlling robotic arm based on receieved serial commands.
 //
 
 #include <unistd.h>
