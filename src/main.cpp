@@ -94,7 +94,7 @@ void idle_state_func(void* data) {
 void calibrate_arm_state_func(void* data) {
     int* servo_values = ((servo_thread_struct*)data)->servo_values;
     running = true;
-    XYZ_to_PWM(1.5,39,-23,servo_values);
+    XYZ_to_PWM(4,39,-21,servo_values);
     while(curr_state == calibrate_arm && !gameover){
     }
     return;
@@ -112,6 +112,23 @@ void calibrate_cam_state_func(void* data) {
     return;
 }
 
+void tossFish(upm::PCA9685* servos, int* servo_values) {
+    int fling_values[NUM_SERVOS] = {1750,1350,1000};
+
+    updateServos(servos, fling_values);
+    usleep(750000);
+    updateServos(servos, servo_values);
+}
+
+void grabFish(upm::PCA9685* servos, int* servo_values, int keypoint_idx) {
+    int grab_values[NUM_SERVOS];
+    XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], -24,  grab_values);
+
+    updateServos(servos, grab_values);
+    usleep(750000);
+    updateServos(servos, servo_values);
+}
+
 void custom_state_func(void* data) {
     running = true;
     while(curr_state == custom && !gameover) {}
@@ -120,14 +137,12 @@ void custom_state_func(void* data) {
 void fish_smart_state_func(void* data) {
     running = true;
     // Values to fling fish off
-    int flingVals[NUM_SERVOS] = {1750,1350,1000};
-    int lastVals[NUM_SERVOS] = {1750,1350,1000};
     upm::PCA9685* servos = ((servo_thread_struct*)data)->servos;
     int* servo_values = ((servo_thread_struct*)data)->servo_values;
     int keypoint_idx = 1;
     int attempt = 0;
-    int upVal = -16;
-    int downVal = -25;
+    int upVal = -20.5;
+    int downVal = -24.5;
     double delay;
     while(curr_state == fish_smart && !gameover) {
         XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], upVal, servo_values);
@@ -136,17 +151,12 @@ void fish_smart_state_func(void* data) {
         for(attempt = 0; attempt < 2; attempt++){
             if(curr_state != fish_smart) return;
             cognexCom->search(&delay);
-            usleep(delay*1000-1500000);
+            usleep(delay*1000+500000);
             XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], downVal, servo_values);
-            usleep(6000000);
+            usleep(2000000);
             XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], upVal, servo_values);
-            usleep(6000000);
-            for(int a = 0; a < NUM_SERVOS; a++){
-                lastVals[a] = servo_values[a];
-            }
-            updateServos(servos, flingVals);
-            usleep(750000);
-            updateServos(servos, lastVals);
+            usleep(2000000);
+            tossFish(servos, servo_values);
         }
         keypoint_idx++;
         if(keypoint_idx >= 8) {
@@ -159,15 +169,11 @@ void fish_random_state_func(void* data) {
     running = true;
     int keypoint_idx = 1;
     int attempt = 0;
-    int upVal = -16;
-    int downVal = -25;
+    int upVal = -20.5;
+    int downVal = -24.5;
     int interval = 1;
-    // Values to fling fish off
-    int flingVals[NUM_SERVOS] = {1750,1350,1000};
-    int lastVals[NUM_SERVOS] = {1750,1350,1000};
     upm::PCA9685* servos = ((servo_thread_struct*)data)->servos;
     int* servo_values = ((servo_thread_struct*)data)->servo_values;
-
     while(curr_state == fish_random && !gameover) {
         XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], upVal, servo_values);
         usleep(1000000);
@@ -175,15 +181,10 @@ void fish_random_state_func(void* data) {
             //interval = rand() % 3 + 1; // 3 to 7 seconds
             usleep(interval * 1000000);
             XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], downVal, servo_values);
-            usleep(6000000);
+            usleep(2000000);
             XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], upVal, servo_values);
-            usleep(6000000);
-            for(int a = 0; a < NUM_SERVOS; a++){
-                lastVals[a] = servo_values[a];
-            }
-            updateServos(servos, flingVals);
-            usleep(750000);
-            updateServos(servos, lastVals);
+            usleep(2000000);
+            tossFish(servos, servo_values);
         }
         keypoint_idx++;
         if(keypoint_idx >= 8) {
@@ -327,14 +328,22 @@ bool isFishHooked() {
     return true;
 }
 
+void usage(void) {
+    printf("calibrate_arm:\n");
+    printf("calibrate_cam:\n");
+    printf("idle:\n");
+    printf("fish_random:\n");
+    printf("fish_smart:\n");
+    printf("custom:\n");
+    printf("kp[1-7]:\n");
+    printf("toss:\n");
+}
+
 //
 // Responsible for receiving and parsing input from remote system
 // and then saving servo_values in memory.
 //
 void getCommand(EdisonComm* edisonCom, int servo_values[], upm::PCA9685* servos){
-    // Values to fling fish off
-    int flingVals[NUM_SERVOS] = {1750,1350,1000};
-    int lastVals[NUM_SERVOS] = {1750,1350,1000};
     // Blocking until message is received
     edisonCom->readLine();
 
@@ -380,23 +389,22 @@ void getCommand(EdisonComm* edisonCom, int servo_values[], upm::PCA9685* servos)
         } else if(cmd == "kp") {
             ss >> j;
             if(j < 8 && keypointsReceived){
-                XYZ_to_PWM(keypoints[j][0],keypoints[j][1],-18,servo_values);
+                XYZ_to_PWM(keypoints[j][0],keypoints[j][1],-20.5,servo_values);
             } else {
                 printf("No valid keypoints!\n");
             }
         } else if(cmd == "toss") {
-            for(int a = 0; a < NUM_SERVOS; a++){
-                lastVals[a] = servo_values[a];
-            }
-            updateServos(servos, flingVals);
-            usleep(750000);
-            updateServos(servos, lastVals);
+            tossFish(servos, servo_values);
+        } else if(cmd == "grab") {
+            grabFish(servos, servo_values, 1);
         } else if(cmd == "fish_random") {
             last_state = curr_state;
             curr_state = fish_random;
         } else if(cmd == "fish_smart") {
             last_state = curr_state;
             curr_state = fish_smart;
+        } else if(cmd == "help") {
+            usage();
         } 
     } else {
         fprintf(stderr, "Error: No command found in message\n");

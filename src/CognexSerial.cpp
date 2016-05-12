@@ -67,7 +67,7 @@ void CognexSerial::getKeypoints(double keypoints[][2]) {
   // Get keyvalues
   for(int n = 0; n < 2; n++){
     j = 0;
-    getValue('d', 38+n);
+    getValue('d', 53+n);
     if(responseData.status_code == 1){
       // Analyze serial message
       string msg = string(responseData.message);
