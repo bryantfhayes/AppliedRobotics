@@ -164,13 +164,12 @@ void CognexSerial::search(double* delay){
   flushInput();
 
   EdisonSerial::readLine();
-  *delay = atof(recvBuffer) - 500.0;
-  printf("recvBuffer = %s\n", recvBuffer);
+  *delay = atof(recvBuffer);
   printf("Fish in %lf milliseconds!\n", *delay);
 
   sprintf(buffer, "SI%c%03d%d", 'N', 8, 0);
   writeLine(buffer);
-  usleep(500000);
+  usleep(20000);
   flushInput();
 
   return;

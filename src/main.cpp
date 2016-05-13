@@ -34,12 +34,12 @@
 #define TEST_MODE 3
 
 // Servo safety bounds
-#define SERVO_X_MIN 850
-#define SERVO_X_MAX 1750
-#define SERVO_Y_MIN 750
-#define SERVO_Y_MAX 1375
-#define SERVO_Z_MIN 750
-#define SERVO_Z_MAX 1600
+#define SERVO_X_MIN 830
+#define SERVO_X_MAX 1770
+#define SERVO_Y_MIN 730
+#define SERVO_Y_MAX 1395
+#define SERVO_Z_MIN 730
+#define SERVO_Z_MAX 1620
 
 
 //
@@ -83,6 +83,7 @@ mraa::Gpio* servoEnablePin;
 state_t curr_state = idle;
 state_t last_state = idle;
 double keypoints[8][2];
+int armSpeed = 50;
 
 
 void idle_state_func(void* data) {
@@ -94,7 +95,7 @@ void idle_state_func(void* data) {
 void calibrate_arm_state_func(void* data) {
     int* servo_values = ((servo_thread_struct*)data)->servo_values;
     running = true;
-    XYZ_to_PWM(4,39,-21,servo_values);
+    XYZ_to_PWM(1.5,39,-21,servo_values);
     while(curr_state == calibrate_arm && !gameover){
     }
     return;
@@ -113,20 +114,26 @@ void calibrate_cam_state_func(void* data) {
 }
 
 void tossFish(upm::PCA9685* servos, int* servo_values) {
-    int fling_values[NUM_SERVOS] = {1750,1350,1000};
-
-    updateServos(servos, fling_values);
-    usleep(750000);
-    updateServos(servos, servo_values);
+    int lastSpeed = armSpeed;
+    armSpeed = 100;
+    XYZ_to_PWM(-30,20,-10,servo_values);
+    usleep(500000);
+    XYZ_to_PWM(0,39,-23,servo_values);
+    usleep(1500000);
+    armSpeed = lastSpeed;
+    XYZ_to_PWM(0,39,-20.5,servo_values);
+    usleep(1000000);
 }
 
 void grabFish(upm::PCA9685* servos, int* servo_values, int keypoint_idx) {
-    int grab_values[NUM_SERVOS];
-    XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], -24,  grab_values);
-
-    updateServos(servos, grab_values);
-    usleep(750000);
-    updateServos(servos, servo_values);
+    int lastSpeed = armSpeed;
+    armSpeed = 99;
+    XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], -24,  servo_values);
+    usleep(1500000-armSpeed*10000);
+    armSpeed = lastSpeed;
+    usleep(300000);
+    XYZ_to_PWM(0,39,-17,servo_values);
+    usleep(1000000);
 }
 
 void custom_state_func(void* data) {
@@ -139,23 +146,49 @@ void fish_smart_state_func(void* data) {
     // Values to fling fish off
     upm::PCA9685* servos = ((servo_thread_struct*)data)->servos;
     int* servo_values = ((servo_thread_struct*)data)->servo_values;
-    int keypoint_idx = 1;
+    int keypoint_idx = 0;
     int attempt = 0;
-    int upVal = -20.5;
+    int upVal = -19;
     int downVal = -24.5;
     double delay;
     while(curr_state == fish_smart && !gameover) {
         XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], upVal, servo_values);
         usleep(1000000);
         cognexCom->setKeypoint(keypoints, keypoint_idx);
-        for(attempt = 0; attempt < 2; attempt++){
+        for(attempt = 0; attempt < 1; attempt++){
             if(curr_state != fish_smart) return;
-            cognexCom->search(&delay);
-            usleep(delay*1000+500000);
-            XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], downVal, servo_values);
-            usleep(2000000);
             XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], upVal, servo_values);
-            usleep(2000000);
+            usleep((rand() % 3 + 2) * 1500000);
+            cognexCom->search(&delay);
+            usleep((delay*1000));
+            grabFish(servos, servo_values, keypoint_idx);
+            tossFish(servos, servo_values);
+            //usleep(3000000);
+        }
+        keypoint_idx++;
+        if(keypoint_idx >= 8) {
+            keypoint_idx = 0;
+        }
+    }
+}
+
+void fish_random_state_func(void* data) {
+    running = true;
+    int keypoint_idx = 1;
+    int attempt = 0;
+    int upVal = -20.8;
+    int interval = 1;
+    upm::PCA9685* servos = ((servo_thread_struct*)data)->servos;
+    int* servo_values = ((servo_thread_struct*)data)->servo_values;
+
+    while(curr_state == fish_random && !gameover) {
+        XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], upVal, servo_values);
+        usleep(2000000);
+        for(attempt = 0; attempt < 1; attempt++){
+            XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], upVal, servo_values);
+            //interval = rand() % 3 + 1; // 3 to 7 seconds
+            usleep(interval * 1000000);
+            grabFish(servos, servo_values, keypoint_idx);
             tossFish(servos, servo_values);
         }
         keypoint_idx++;
@@ -165,33 +198,55 @@ void fish_smart_state_func(void* data) {
     }
 }
 
-void fish_random_state_func(void* data) {
-    running = true;
-    int keypoint_idx = 1;
-    int attempt = 0;
-    int upVal = -20.5;
-    int downVal = -24.5;
-    int interval = 1;
-    upm::PCA9685* servos = ((servo_thread_struct*)data)->servos;
-    int* servo_values = ((servo_thread_struct*)data)->servo_values;
-    while(curr_state == fish_random && !gameover) {
-        XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], upVal, servo_values);
-        usleep(1000000);
-        for(attempt = 0; attempt < 2; attempt++){
-            //interval = rand() % 3 + 1; // 3 to 7 seconds
-            usleep(interval * 1000000);
-            XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], downVal, servo_values);
-            usleep(2000000);
-            XYZ_to_PWM(keypoints[keypoint_idx][0], keypoints[keypoint_idx][1], upVal, servo_values);
-            usleep(2000000);
-            tossFish(servos, servo_values);
+//
+// Responsible for loading calibrated key points from a file
+// rather than asking the camera. Mainly for testing purposes.
+//
+void loadCalibration(double keypoints[][2]) {
+    char buffer[256];
+    FILE *fp = fopen("include/calibration.txt", "r");
+    if(fp != NULL){
+        for(int j = 0; j < 8; j++){
+            fgets(buffer, 255, (FILE*)fp);
+            string line = string(buffer);
+            vector<double> pts;
+            stringstream ss(line);
+            double i;
+            while(ss >> i){
+                pts.push_back(i);
+                if(ss.peek() == ',')
+                    ss.ignore();
+            }
+            if(pts.size() == 2){
+                keypoints[j][0] = pts.at(0);
+                keypoints[j][1] = pts.at(1);
+            }
+            printf("Loaded keypoint %d: %lf, %lf\n", j, keypoints[j][0], keypoints[j][1]);
         }
-        keypoint_idx++;
-        if(keypoint_idx >= 8) {
-            keypoint_idx = 1;
-        }
+        keypointsReceived = true;
+        fclose(fp);
+    } else {
+        printf("Problem loading file\n");
     }
 }
+
+//
+// Responsible for saving calibrated key points to a file
+//
+void saveCalibration(double keypoints[][2]) {
+    char buffer[256];
+    if(keypointsReceived){
+        FILE *fp = fopen("include/calibration.txt", "w");
+        for(int j = 0; j < 8; j++){
+            fprintf(fp, "%lf,%lf\n", keypoints[j][0], keypoints[j][1]);
+        }
+        fclose(fp);
+        printf("Keypoitns saved successfully!\n");
+    } else {
+        printf("Cannot write because keypoints are not known!\n");
+    }
+}
+
 //
 // Monitor state and update internal state machine to drive gameplay
 //
@@ -224,19 +279,27 @@ void updateServos(upm::PCA9685* servos, int servo_values[]){
 //
 // An extra thread is created and continuosly updates the servo positions
 //
-void* updateThread(void* data){
+void* updateArm(void* data){
+    // Variables
     int* future_values = ((servo_thread_struct*)data)->servo_values;
     upm::PCA9685* servos = ((servo_thread_struct*)data)->servos;
-    pthread_mutex_lock(&my_lock);
-    static int current_values[NUM_SERVOS] = {future_values[0], future_values[1], future_values[2]};
-    static int goal_values[NUM_SERVOS] = {future_values[0], future_values[1], future_values[2]};
-    pthread_mutex_unlock(&my_lock);
     static int mod_values[NUM_SERVOS] = {1,1,1};
     int count = 1;
     bool changed = false;
     bool servosEnabled = true;
     bool okToStart = false;
+    int currentSpeed = 7500;
+
+    // Save current servo position goal
+    pthread_mutex_lock(&my_lock);
+    static int current_values[NUM_SERVOS] = {future_values[0], future_values[1], future_values[2]};
+    static int goal_values[NUM_SERVOS] = {future_values[0], future_values[1], future_values[2]};
+    pthread_mutex_unlock(&my_lock);
+
+    // Main arm control loop
     while(!gameover) {
+
+        // Determine if arm is enabled
         if(!running && servosEnabled) {
             servosEnabled = false;
             servoEnablePin->write(1);
@@ -247,6 +310,8 @@ void* updateThread(void* data){
             usleep(100000);
             okToStart = true;
         }
+
+        // If arm is enabled and turned on
         while(running && okToStart) {
             // Compare and set the current goal position
             for(int i = 0; i < NUM_SERVOS; i++){
@@ -255,44 +320,55 @@ void* updateThread(void* data){
                     goal_values[0] = future_values[0];
                     goal_values[1] = future_values[1];
                     goal_values[2] = future_values[2];
+                    currentSpeed = 10000 - 100 * armSpeed;
                     count = 1;
                     int x_diff = abs(goal_values[0]-current_values[0]);
-                    //fprintf(stdout, "goal: %d");
                     int y_diff = abs(goal_values[1]-current_values[1]);
                     int z_diff = abs(goal_values[2]-current_values[2]);
                     int biggest_diff = max(max(x_diff, y_diff), z_diff);
                     if(x_diff > 0) mod_values[0] = biggest_diff / x_diff;
                     if(y_diff > 0) mod_values[1] = biggest_diff / y_diff;
                     if(z_diff > 0) mod_values[2] = biggest_diff / z_diff;
-                    //fprintf(stdout, "diffs- x:%d, y:%d, z:%d\n", x_diff, y_diff, z_diff);
-                    //fprintf(stdout, "mods- x:%d, y:%d, z:%d\n", mod_values[0], mod_values[1], mod_values[2]);
                     pthread_mutex_unlock(&my_lock);
                     break;
                 }
                 pthread_mutex_unlock(&my_lock);
             }
 
-            // Check to see if any values changed, and adjust
-            changed = false;
-            for(int i = 0; i < NUM_SERVOS; i++){
-                // check if it is allowed to move yet
-                if(count % mod_values[i] == 0){
-                    if(goal_values[i] > current_values[i]) {
-                        current_values[i]++;
-                        changed = true;
-                    } else if (goal_values[i] < current_values[i]){
-                        current_values[i]--;
-                        changed = true;
+            // If we are not currently at the goal then move.
+            if(current_values[0] != goal_values[0] || current_values[1] != goal_values[1] || current_values[2] != goal_values[2]) {
+                // Check to see which values changed, and adjust accordingly
+                changed = false;
+                for(int i = 0; i < NUM_SERVOS; i++){
+                    // check if it is allowed to move yet
+                    if(count % mod_values[i] == 0){
+                        if(goal_values[i] > current_values[i]) {
+                            if(currentSpeed == 0) {
+                                current_values[i] = goal_values[i];
+                            }
+                            else {
+                                current_values[i]++;
+                            }
+                            changed = true;
+                        } else if (goal_values[i] < current_values[i]){
+                            if(currentSpeed == 0) {
+                                current_values[i] = goal_values[i];
+                            }
+                            else {
+                                current_values[i]--;
+                            }
+                            changed = true;
+                        }
                     }
                 }
+                count++;
+                // Update servos if any values changed
+                if(changed) {
+                    updateServos(servos, current_values);
+                }
+                // I think this value will control speed
+                usleep(currentSpeed);
             }
-            count++;
-            // Update servos if any values changed
-            if(changed) {
-                updateServos(servos, current_values);
-            }
-            // I think this value will control speed
-            usleep(7000);
         }
 
     }
@@ -329,14 +405,16 @@ bool isFishHooked() {
 }
 
 void usage(void) {
-    printf("calibrate_arm:\n");
-    printf("calibrate_cam:\n");
-    printf("idle:\n");
-    printf("fish_random:\n");
-    printf("fish_smart:\n");
-    printf("custom:\n");
-    printf("kp[1-7]:\n");
-    printf("toss:\n");
+    printf("calibrate_arm\n");
+    printf("calibrate_cam\n");
+    printf("idle\n");
+    printf("fish_random\n");
+    printf("fish_smart\n");
+    printf("custom\n");
+    printf("kp:[1-7]\n");
+    printf("toss\n");
+    printf("load_calibration\n");
+    printf("save_calibration\n");
 }
 
 //
@@ -389,20 +467,37 @@ void getCommand(EdisonComm* edisonCom, int servo_values[], upm::PCA9685* servos)
         } else if(cmd == "kp") {
             ss >> j;
             if(j < 8 && keypointsReceived){
-                XYZ_to_PWM(keypoints[j][0],keypoints[j][1],-20.5,servo_values);
+                XYZ_to_PWM(keypoints[j][0],keypoints[j][1],-19,servo_values);
             } else {
                 printf("No valid keypoints!\n");
+            }
+        } else if(cmd == "set_speed") {
+            ss >> j;
+            if(j <= 100 && j >= 0){
+                armSpeed = j;
+            } else {
+                printf("Invalid Speed!\n");
             }
         } else if(cmd == "toss") {
             tossFish(servos, servo_values);
         } else if(cmd == "grab") {
-            grabFish(servos, servo_values, 1);
+            ss >> j;
+            if(j < 8 && keypointsReceived){
+                grabFish(servos, servo_values, j);            
+            } else {
+                printf("Not a valid keypoint!\n");
+            }
+            
         } else if(cmd == "fish_random") {
             last_state = curr_state;
             curr_state = fish_random;
         } else if(cmd == "fish_smart") {
             last_state = curr_state;
             curr_state = fish_smart;
+        } else if(cmd == "load_calibration") {
+            loadCalibration(keypoints);
+        } else if(cmd == "save_calibration") {
+            saveCalibration(keypoints);
         } else if(cmd == "help") {
             usage();
         } 
@@ -419,7 +514,7 @@ void getCommand(EdisonComm* edisonCom, int servo_values[], upm::PCA9685* servos)
 // Responsible for setting up the multiple threads active in program
 //
 void setupMultithreading(pthread_t* servo_control_thread, pthread_t* state_control_thread, servo_thread_struct* data) {
-    int servo_thread_retval = pthread_create(servo_control_thread, NULL, updateThread, (void *)data);
+    int servo_thread_retval = pthread_create(servo_control_thread, NULL, updateArm, (void *)data);
     int state_thread_retval = pthread_create(state_control_thread, NULL, updateState, (void *)data);
     if(state_thread_retval || servo_thread_retval){
         fprintf(stderr, "Error: Unable to create thread\n");
