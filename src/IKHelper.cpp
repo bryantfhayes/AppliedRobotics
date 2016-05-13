@@ -1,3 +1,10 @@
+/*
+* @Author: Bryant Hayes
+* @Date:   2016-05-07 02:22:47
+* @Last Modified by:   Bryant Hayes
+* @Last Modified time: 2016-05-12 23:27:16
+*/
+
 #include "IKHelper.h"
 #include <math.h>
 #include <stdlib.h>

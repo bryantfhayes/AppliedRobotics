@@ -1,8 +1,13 @@
-//
-// File: main.cpp
-// Author: Bryant Hayes
-// Description: Low level code for controlling robotic arm based on receieved serial commands.
-//
+/*
+* @Author: Bryant Hayes
+* @Date:   2016-05-12 23:20:03
+* @Last Modified by:   Bryant Hayes
+* @Last Modified time: 2016-05-12 23:26:39
+*/
+
+//TODO: Add comments to functions
+//TODO: Make a list of prototypes
+//TODO: 
 
 #include <unistd.h>
 #include <signal.h>
@@ -40,7 +45,6 @@
 #define SERVO_Y_MAX 1395
 #define SERVO_Z_MIN 730
 #define SERVO_Z_MAX 1620
-
 
 //
 // Prototypes
@@ -163,7 +167,6 @@ void fish_smart_state_func(void* data) {
             usleep((delay*1000));
             grabFish(servos, servo_values, keypoint_idx);
             tossFish(servos, servo_values);
-            //usleep(3000000);
         }
         keypoint_idx++;
         if(keypoint_idx >= 8) {
@@ -241,7 +244,7 @@ void saveCalibration(double keypoints[][2]) {
             fprintf(fp, "%lf,%lf\n", keypoints[j][0], keypoints[j][1]);
         }
         fclose(fp);
-        printf("Keypoitns saved successfully!\n");
+        printf("Keypoints saved successfully!\n");
     } else {
         printf("Cannot write because keypoints are not known!\n");
     }

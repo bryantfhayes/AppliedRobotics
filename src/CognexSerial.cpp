@@ -1,3 +1,10 @@
+/*
+* @Author: Bryant Hayes
+* @Date:   2016-05-12 23:20:18
+* @Last Modified by:   Bryant Hayes
+* @Last Modified time: 2016-05-12 23:30:15
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
@@ -160,7 +167,7 @@ void CognexSerial::search(double* delay){
   sprintf(buffer, "SI%c%03d%d", 'N', 8, 1);
   printf("sending %s\n", buffer);
   writeLine(buffer);
-  usleep(500000);
+  usleep(100000);
   flushInput();
 
   EdisonSerial::readLine();

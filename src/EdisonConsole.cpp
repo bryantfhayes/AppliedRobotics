@@ -1,3 +1,10 @@
+/*
+* @Author: Bryant Hayes
+* @Date:   2016-05-06 23:17:23
+* @Last Modified by:   Bryant Hayes
+* @Last Modified time: 2016-05-12 23:26:56
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>

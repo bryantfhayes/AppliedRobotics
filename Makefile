@@ -1,5 +1,8 @@
 #
-# Makefile for the project: Applied Robotics
+# @Author: Bryant Hayes
+# @Date:   2016-05-12 23:20:18
+# @Last Modified by:   Bryant Hayes
+# @Last Modified time: 2016-05-12 23:27:04
 #
 
 CC := g++ # This is the main compiler

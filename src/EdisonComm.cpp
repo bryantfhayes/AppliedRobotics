@@ -1,3 +1,10 @@
+/*
+* @Author: Bryant Hayes
+* @Date:   2016-04-14 01:22:17
+* @Last Modified by:   Bryant Hayes
+* @Last Modified time: 2016-05-12 23:27:12
+*/
+
 #include "EdisonComm.h"
 #include "EdisonSerial.h"
 #include "EdisonSocket.h"
