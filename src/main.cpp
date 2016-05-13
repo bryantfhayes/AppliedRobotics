@@ -2,12 +2,15 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-12 23:20:03
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-12 23:26:39
+* @Last Modified time: 2016-05-13 16:42:52
 */
 
 //TODO: Add comments to functions
 //TODO: Make a list of prototypes
-//TODO: 
+//TODO: Make camera communication redundant
+//TODO: Add logging and change printf's to EdisonComm class method
+//TODO: Make sure camera orientation lines up with arm calibration @mechanical
+//TODO: Get version 1 of the app working
 
 #include <unistd.h>
 #include <signal.h>
