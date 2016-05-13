@@ -200,8 +200,7 @@ namespace upm {
     bool writeByte(uint8_t reg, uint8_t byte);
 
     /**
-     * Writes a word value into a register. Note: the device must have the
-     * auto-increment bit set in the MODE1 register to work.
+     * Writes a word value into a register.
      *
      * @param reg Register location to write into
      * @param word Word to write
@@ -218,8 +217,7 @@ namespace upm {
     uint8_t readByte(uint8_t reg);
 
     /**
-     * Reads a word value from a register. Note: the device must have the
-     * auto-increment bit set in the MODE1 register to work.
+     * Reads a word value from a register. 
      *
      * @param reg Register location to read from
      * @return Value in a specified register
