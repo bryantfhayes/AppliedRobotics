@@ -2,7 +2,7 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-06 23:17:23
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-12 23:26:56
+* @Last Modified time: 2016-05-14 18:19:41
 */
 
 #include <stdio.h>
@@ -14,7 +14,7 @@
 using namespace std;
 
 EdisonConsole::EdisonConsole(){
-    fprintf(stdout, "CONSOLE:    RUNNING\n");
+	fprintf(stdout, "Initializing console...\n");
     gameover = false;
 }
 

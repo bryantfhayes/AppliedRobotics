@@ -2,7 +2,7 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-06 23:17:40
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-12 23:26:59
+* @Last Modified time: 2016-05-14 18:19:04
 */
 
 #include <stdlib.h>
@@ -42,7 +42,7 @@ EdisonSocket::EdisonSocket(){
         exit(1);
     }
 
-    fprintf(stdout, "SOCKET:     RUNNING\n");
+    fprintf(stdout, "Initializing udp socket...\n");
 
     gameover = false;
 }

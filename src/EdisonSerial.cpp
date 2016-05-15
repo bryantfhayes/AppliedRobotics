@@ -2,7 +2,7 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-07 17:14:25
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-12 23:27:09
+* @Last Modified time: 2016-05-14 18:19:19
 */
 
 #include <stdio.h>
@@ -39,7 +39,7 @@ EdisonSerial::EdisonSerial(){
         cout << "Error setting flow control UART" << endl;
     }
 
-    fprintf(stdout, "SERIAL:     RUNNING\n");
+    fprintf(stdout, "Initializing serial connection...\n");
     gameover = false;
 
     escapeChar = '\r';
