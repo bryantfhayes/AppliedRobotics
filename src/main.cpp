@@ -2,7 +2,7 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-12 23:20:03
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-14 21:41:04
+* @Last Modified time: 2016-05-17 22:01:58
 */
 
 //TODO: Add comments to functions
@@ -27,6 +27,10 @@
 #include "CognexSerial.h"
 #include "BHUtils.h"
 #include "FishingRobot.h"
+
+//TODO: Counting increases even when Bad Servo Value achieved
+
+
 
 // MACRO FUNCTIONS
 #define DEBUG(x) do { std::cerr << x; } while (0)
@@ -93,7 +97,7 @@ void idle_state_func() {
 void calibrate_arm_state_func() {
     DEBUG("Entering calibrate arm state\n");
     robot->enable(true);
-    robot->setPosition(1.5, 39, -21);
+    robot->setPosition(0, 39, -21);
     while(curr_state == calibrate_arm && !gameover){}
     return;
 }
@@ -126,7 +130,7 @@ void custom_state_func() {
 void fish_smart_state_func() {
     DEBUG("Entering fish smart state\n");
     robot->enable(true);
-    int upVal = -17;
+    int upVal = -19;
     int idx = 0;
     int numOfAttempts = 2;
     double delay = 0.0;
@@ -308,7 +312,7 @@ void getCommand(){
         curr_state = fish_smart;
     } else if(cmd == "kp") {
         if (input.size() == 2 && keypointsReceived) {
-            robot->setPosition(keypoints[stoi(input.at(1), NULL)][0], keypoints[stoi(input.at(1), NULL)][0], -19);
+            robot->setPosition(keypoints[stoi(input.at(1), NULL)][0], keypoints[stoi(input.at(1), NULL)][1], -19);
         } else if (keypointsReceived) {
             fprintf(stderr, "ERROR: Incorrect number of arguements\n");
             return;
@@ -333,6 +337,8 @@ void getCommand(){
         saveCalibration(keypoints);
     } else if(cmd == "help") {
         usage();
+    }  else if(cmd == "shake") {
+        robot->shake();
     } 
 
     return;

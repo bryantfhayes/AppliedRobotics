@@ -2,7 +2,7 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-14 13:21:56
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-14 21:39:32
+* @Last Modified time: 2016-05-18 00:04:24
 */
 
 #include <stdio.h>
@@ -61,7 +61,7 @@ void SSRobot::enable(bool state) {
 // max speed (point-to-point).
 //
 void SSRobot::setSpeed(int speed) {
-	if (speed <= 100) {
+	if (speed <= 100 && speed > 0) {
 		_armSpeed = speed;
 	} else {
 		fprintf(stderr, "ERROR: Invalid speed\n");
@@ -91,6 +91,7 @@ int SSRobot::setPosition(double x, double y, double z) {
     	fprintf(stderr, "ERROR: Invalid Position\n");
         return 1;
     }
+
     _lastXYZ = _targetXYZ;
     _targetXYZ = {x,y,z};
     _targetPWM = angleToPwm(g, a, b);
@@ -121,7 +122,9 @@ void* SSRobot::update(void* context) {
 
 	while (robot->isAlive()) {
 		if (!(robot->_targetPWM == goalPWM)) {
-			goalPWM = robot->_targetPWM;
+			goalPWM.x = robot->_targetPWM.x;
+            goalPWM.y = robot->_targetPWM.y;
+            goalPWM.z = robot->_targetPWM.z;
 			currentSpeed = 10000 - 100 * robot->_armSpeed;
 			count = 1;
 			x_diff = abs(goalPWM.x - robot->_currentPWM.x);
@@ -135,7 +138,7 @@ void* SSRobot::update(void* context) {
 
 		// This doesnt follow DRY principle. Could possibly iterate over struct using 
 		// a pointer and increase offset by sizeof(int).
-		if (!(robot->_targetPWM == robot->_currentPWM)) {
+		if (!(goalPWM == robot->_currentPWM)) {
 			changed = false;
 			// X
 			if(count % modValues.x == 0){
@@ -157,6 +160,7 @@ void* SSRobot::update(void* context) {
                     changed = true;
                 }
             }
+
             // Y
             if(count % modValues.y == 0){
                 if(goalPWM.y > robot->_currentPWM.y) {
@@ -177,6 +181,7 @@ void* SSRobot::update(void* context) {
                     changed = true;
                 }
             }
+
             // Z
             if(count % modValues.z == 0){
                 if(goalPWM.z > robot->_currentPWM.z) {
@@ -206,8 +211,10 @@ void* SSRobot::update(void* context) {
             	robot->_servos.zValue = robot->_currentPWM.z;
             	robot->updateServos();
             }
-
-            usleep(currentSpeed);
+            if(currentSpeed > 0) {
+                usleep(currentSpeed);
+            }
+            
 
 		}
 	}
@@ -271,7 +278,6 @@ int SSRobot::updateServos() {
         fprintf(stdout, "BAD SERVO VALUE ATTEMPTED!\n");
         return 1;
     }
-
     _servos.controller->ledOffTime(SERVO_X_PIN, _servos.xValue);
     _servos.controller->ledOffTime(SERVO_Y_PIN, _servos.yValue);
     _servos.controller->ledOffTime(SERVO_Z_PIN, _servos.zValue);

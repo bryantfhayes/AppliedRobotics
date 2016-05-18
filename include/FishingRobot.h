@@ -9,6 +9,7 @@ class FishingRobot : public SSRobot{
         ~FishingRobot();
         void grab();
         void toss();
+        void shake();
 };
 
 #endif

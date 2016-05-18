@@ -2,7 +2,7 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-14 19:02:35
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-14 20:59:28
+* @Last Modified time: 2016-05-17 22:38:21
 */
 
 #include <iostream>
@@ -29,7 +29,7 @@ FishingRobot::~FishingRobot(){
 void FishingRobot::toss() {
 	int lastSpeed = _armSpeed;
     _armSpeed = 100;
-    setPosition(-30,20,-10);
+    setPosition(-25,25,-10);
     usleep(500000);
     setPosition(_lastXYZ.x,_lastXYZ.y,-23);
     usleep(1500000);
@@ -50,6 +50,37 @@ void FishingRobot::grab() {
 	usleep(300000);
 	setPosition(_lastXYZ.x, _lastXYZ.y, _lastXYZ.z);
 	usleep(1000000);
+}
+
+void FishingRobot::shake(){
+	int lastSpeed = _armSpeed;
+	_armSpeed = 50;
+	double x = _targetXYZ.x;
+	double y = _targetXYZ.y;
+	double z = _targetXYZ.z;
+	setPosition(x,y,-14);
+	usleep(1200000);
+	_armSpeed = 80;
+	usleep(20000);
+	setPosition(-16.5,30,-14);
+	usleep(1200000);
+	setPosition(-16.5,30,-21);
+	usleep(1000000);
+	_armSpeed = 100;
+	for(int i = 0; i < 2; i++){
+		setPosition(-15,30,-21);
+		usleep(250000);
+		setPosition(-18,30,-21);
+		usleep(250000);
+	}
+	setPosition(-16.5,30,-15);
+	usleep(1000000);
+	_armSpeed = 100;
+	usleep(50000);
+	setPosition(x,y,z);
+	usleep(400000);
+	_armSpeed = lastSpeed;
+	usleep(50000);
 }
 
 
