@@ -2,7 +2,7 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-06 23:17:40
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-14 18:19:04
+* @Last Modified time: 2016-05-18 02:33:37
 */
 
 #include <stdlib.h>
@@ -37,10 +37,13 @@ EdisonSocket::EdisonSocket(){
     memset((char *) &remaddr, 0, sizeof(remaddr));
     remaddr.sin_family = AF_INET;
     remaddr.sin_port = htons(SERVICE_PORT);
+    
+    /*
     if (inet_aton(server, &remaddr.sin_addr)==0) {
         fprintf(stderr, "inet_aton() failed\n");
         exit(1);
     }
+    */
 
     fprintf(stdout, "Initializing udp socket...\n");
 
@@ -60,7 +63,7 @@ void EdisonSocket::readLine(void){
             if(FD_ISSET(fd, &readset)){
                 //fprintf(stdout, "Waiting for data\n");
                 recvlen = recvfrom(fd, recvBuffer, MAX_MSG_SIZE, 0, (struct sockaddr *)&remaddr, &addrlen);
-                //printf("received %d bytes\n", recvlen);
+                inet_ntop(AF_INET, &((&remaddr)->sin_addr), clientIP, INET_ADDRSTRLEN);
                 if (recvlen > 0) {
                     recvBuffer[recvlen] = 0;
                     //printf("received message: \"%s\"\n", recvBuffer);
@@ -76,6 +79,16 @@ void EdisonSocket::readLine(void){
 
 void EdisonSocket::writeLine(char* msg){
     sprintf(sendBuffer, msg);
+    if (clientIP == "") {
+        fprintf(stderr, "No target IP\n");
+        return;
+    }
+    if (inet_aton(clientIP, &remaddr.sin_addr)==0) {
+        fprintf(stderr, "inet_aton() failed\n");
+        return;
+    }
+    (&remaddr)->sin_port = htons(SERVICE_PORT);
     if (sendto(fd, sendBuffer, strlen(sendBuffer), 0, (struct sockaddr *)&remaddr, sizeof(remaddr))==-1)
         perror("sendto");
+    //printf("sent msg: %s : to ip: %s on port: %d.\n", sendBuffer, clientIP, (&remaddr)->sin_port);
 }

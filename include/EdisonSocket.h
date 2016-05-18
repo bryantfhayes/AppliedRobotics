@@ -21,7 +21,7 @@ class EdisonSocket : public EdisonComm{
         socklen_t addrlen = sizeof(remaddr);        /* length of addresses */
         int recvlen;                                /* # bytes received    */
         int fd;                                     /* our socket          */
-        const char *server = "192.168.0.104";       /* remote IP Address   */
+        char clientIP[INET_ADDRSTRLEN];             /* remote IP Address   */
 
 };
 #endif

@@ -2,7 +2,7 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-12 23:20:03
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-17 22:01:58
+* @Last Modified time: 2016-05-18 01:50:15
 */
 
 //TODO: Add comments to functions
@@ -111,7 +111,13 @@ void calibrate_cam_state_func() {
     cognexCom->setState(CALIBRATE_STATE);
     cognexCom->setState(RUN_STATE);
     cognexCom->getKeypoints(keypoints);
-    keypointsReceived = true;
+    if (keypoints[0][0] == 0.0 || keypoints[0][1] == 0.0) {
+        com->writeLine("error");
+        keypointsReceived = false;
+    } else {
+        com->writeLine("ok");
+        keypointsReceived = true;
+    }
     curr_state = last_state;
     return;
 }
@@ -267,6 +273,12 @@ void usage() {
     //TODO: Add usage/help menu
 }
 
+void acknowledge() {
+    char buffer[32];
+    sprintf(buffer, "ok");
+    com->writeLine(buffer);
+}
+
 //
 // Responsible for receiving and parsing input from remote system
 // and then saving servo_values in memory.
@@ -296,11 +308,14 @@ void getCommand(){
     } else if(cmd == "calibrate_arm") {
         last_state = curr_state;
         curr_state = calibrate_arm;
+        acknowledge();
     } else if(cmd == "calibrate_cam") {
         last_state = curr_state;
         curr_state = calibrate_cam;
+        acknowledge();
     } else if (cmd == "idle"){
         curr_state = idle;
+        acknowledge();
     } else if(cmd == "custom") {
         last_state = curr_state;
         curr_state = custom;
@@ -339,7 +354,9 @@ void getCommand(){
         usage();
     }  else if(cmd == "shake") {
         robot->shake();
-    } 
+    } else if ("hello") {
+        acknowledge();
+    }
 
     return;
 }
@@ -416,7 +433,7 @@ void cleanExit() {
         fprintf(stdout, "Terminating state control thread...\n");
         pthread_join(state_control_thread, (void**)&rPtr);
     }  
-    if (com != NULL) {
+    if (com != NULL && mode != wireless) {
         delete com; 
     }
     if (cognexCom != NULL) {
