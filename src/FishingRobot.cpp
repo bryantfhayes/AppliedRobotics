@@ -2,7 +2,7 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-14 19:02:35
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-17 22:38:21
+* @Last Modified time: 2016-05-18 21:50:22
 */
 
 #include <iostream>
@@ -15,6 +15,7 @@ using namespace std;
 // Constructor
 //
 FishingRobot::FishingRobot(){
+	boardAngle = 0.0;
 }
 
 //

@@ -10,6 +10,8 @@ class FishingRobot : public SSRobot{
         void grab();
         void toss();
         void shake();
+
+        double boardAngle;
 };
 
 #endif

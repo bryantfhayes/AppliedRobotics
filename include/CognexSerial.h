@@ -10,6 +10,8 @@
 #define CALIBRATE_STATE 6
 #define RUN_STATE 7
 
+using namespace std;
+
 typedef struct CognexData {
 	int status_code;
 	char message[256];
@@ -19,6 +21,8 @@ class CognexSerial : public EdisonSerial {
     public:
         CognexSerial();
         ~CognexSerial();
+        double getBoardAngle();
+        bool checkForDouble(string s);
         double getValue(char, int);
         int setOnline(bool);
         void readLine(CognexData*);

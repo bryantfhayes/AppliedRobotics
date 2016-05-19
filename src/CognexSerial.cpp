@@ -2,7 +2,7 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-12 23:20:18
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-12 23:30:15
+* @Last Modified time: 2016-05-18 22:31:44
 */
 
 #include <stdio.h>
@@ -26,7 +26,17 @@ double CognexSerial::getValue(char col, int row){
 	writeLine(buffer);
 	readLine(&responseData);
 	//printf("status code: %d\nmessage: %s\n", responseData.status_code, responseData.message);
-	return -1.0;
+  if (responseData.status_code == 1 && checkForDouble(string(responseData.message))) {
+    return stod(responseData.message, NULL);
+  } else {
+    return -1;
+  }
+}
+
+bool CognexSerial::checkForDouble(string s) {
+  istringstream ss(s);
+  double d;
+  return (ss >> d) && (ss >> std::ws).eof();
 }
 
 int CognexSerial::setOnline(bool val){
@@ -36,6 +46,10 @@ int CognexSerial::setOnline(bool val){
 	writeLine(buffer);
 	EdisonSerial::readLine();
 	return atoi(recvBuffer);
+}
+
+double CognexSerial::getBoardAngle() {
+  return getValue('G', 21);
 }
 
 void sortKeypoints(double keypoints[][2]) {
@@ -65,6 +79,12 @@ void CognexSerial::getKeypoints(double keypoints[][2]) {
   int j;
   double i;
   
+  //RESET KEYPOINTS
+  for(int j = 0; j < 8; j++) {
+    keypoints[j][0] = 0.0;
+    keypoints[j][1] = 0.0;
+  }
+
   // Capture frame
   char buffer[256];
   sprintf(buffer, "SE8");
@@ -146,7 +166,7 @@ void CognexSerial::setState(int state) {
       usleep(10000);
       sprintf(buffer, "SI%c%03d%d", 'N', CALIBRATE_STATE, 1);
       writeLine(buffer);
-      usleep(10000000);
+      usleep(4000000);
       flushInput();
       break;
     case RUN_STATE:
@@ -155,7 +175,7 @@ void CognexSerial::setState(int state) {
       usleep(10000);
       sprintf(buffer, "SI%c%03d%d", 'N', CALIBRATE_STATE, 0);
       writeLine(buffer);
-      usleep(17000000);
+      usleep(4000000);
       flushInput();
       break;  
   }

@@ -2,7 +2,7 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-12 23:20:03
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-18 01:50:15
+* @Last Modified time: 2016-05-18 22:46:16
 */
 
 //TODO: Add comments to functions
@@ -108,14 +108,17 @@ void calibrate_arm_state_func() {
 void calibrate_cam_state_func() {
     DEBUG("Entering calibrate cam state\n");
     DEBUG("In-Sight 7000 Calibrating...\n");
+    char buffer[255];
     cognexCom->setState(CALIBRATE_STATE);
     cognexCom->setState(RUN_STATE);
     cognexCom->getKeypoints(keypoints);
+    robot->boardAngle = cognexCom->getBoardAngle();
     if (keypoints[0][0] == 0.0 || keypoints[0][1] == 0.0) {
         com->writeLine("error");
         keypointsReceived = false;
     } else {
-        com->writeLine("ok");
+        sprintf(buffer, "%lf", robot->boardAngle);
+        com->writeLine(buffer);
         keypointsReceived = true;
     }
     curr_state = last_state;
@@ -343,8 +346,10 @@ void getCommand(){
             return;
         }
     } else if(cmd == "toss") {
+        acknowledge();
         robot->toss();
     } else if(cmd == "grab") {
+        acknowledge();
         robot->grab(); 
     } else if(cmd == "load_calibration") {
         loadCalibration(keypoints);
@@ -353,6 +358,7 @@ void getCommand(){
     } else if(cmd == "help") {
         usage();
     }  else if(cmd == "shake") {
+        acknowledge();
         robot->shake();
     } else if ("hello") {
         acknowledge();
