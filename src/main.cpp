@@ -2,7 +2,7 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-12 23:20:03
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-18 22:46:16
+* @Last Modified time: 2016-05-20 01:00:30
 */
 
 //TODO: Add comments to functions
@@ -140,25 +140,33 @@ void fish_smart_state_func() {
     DEBUG("Entering fish smart state\n");
     robot->enable(true);
     int upVal = -19;
-    int idx = 0;
-    int numOfAttempts = 2;
+    int idx = 1;
+    int numOfAttempts = 1;
     double delay = 0.0;
     while(curr_state == fish_smart && !gameover) {
         robot->setPosition(keypoints[idx][0], keypoints[idx][1], upVal);
-        usleep(1000000);
+        //usleep(1000000);
         cognexCom->setKeypoint(keypoints, idx);
         for(int attempt = 0; attempt < numOfAttempts; attempt++){
             if(curr_state != fish_smart) return;
             robot->setPosition(keypoints[idx][0], keypoints[idx][1], upVal);
-            usleep((rand() % 3 + 2) * 1500000);
+            usleep((rand() % 3 + 2) * 500000);
             cognexCom->search(&delay);
-            usleep((delay*1000));
-            robot->grab();
+
+            // Flush buffer if error in response
+            if ((delay*1000 - 100000) > 1){
+                usleep((delay*1000 - 100000));
+            } else {
+                cognexCom->flushInput();
+            }
+            
+            robot->grab(idx);
             robot->toss();
         }
-        idx++;
-        if(idx >= 8) {
-            idx = 0;
+        while ((++idx > 7) || (keypoints[idx][1] < 33.0) || (keypoints[idx][1] > 47.0)) {
+            if(idx >= 8) {
+                idx = 0;
+            }
         }
     }
 }

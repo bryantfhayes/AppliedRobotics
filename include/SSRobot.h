@@ -76,6 +76,7 @@ class SSRobot {
         SSRobot();
         ~SSRobot();
         int setPosition(double x, double y, double z);
+        int setPosition(double x, double y, double z, int delay);
         void setSpeed(int x);
         int getSpeed();
         void enable(bool state);
@@ -89,6 +90,7 @@ class SSRobot {
     	int initServos();
     	int initControlThread();
     	int updateServos();
+        int biggestDifference(pwms_t a, pwms_t b);
     	servos_t _servos;
     	pwms_t _targetPWM;
     	position_t _targetXYZ;

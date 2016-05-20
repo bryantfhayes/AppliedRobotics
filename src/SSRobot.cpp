@@ -2,7 +2,7 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-14 13:21:56
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-18 00:04:24
+* @Last Modified time: 2016-05-19 20:28:08
 */
 
 #include <stdio.h>
@@ -96,6 +96,34 @@ int SSRobot::setPosition(double x, double y, double z) {
     _targetXYZ = {x,y,z};
     _targetPWM = angleToPwm(g, a, b);
 
+    if (_armSpeed < 100){
+        usleep(750000);
+    } else {
+        usleep(750000 + biggestDifference(_currentPWM, _targetPWM) * (10000 - (100 *_armSpeed)));
+    }
+
+    return 0;
+}
+
+int SSRobot::setPosition(double x, double y, double z, int delay) {
+// Determine required joint angles
+    double g = calculateGamma(x,y,z);
+    double t = degs_to_rads(g);
+    double a = calculateAlpha(x-(TOOL_LENGTH*sin(t)),y-(TOOL_LENGTH*cos(t)),z+TOOL_HEIGHT);
+    double b = calculateBeta(x-(TOOL_LENGTH*sin(t)),y-(TOOL_LENGTH*cos(t)),z+TOOL_HEIGHT);
+    
+    // Check to see if all values were calculated successfully
+    if(std::isnan(a) || std::isnan(b) || std::isnan(g)){
+        fprintf(stderr, "ERROR: Invalid Position\n");
+        return 1;
+    }
+
+    _lastXYZ = _targetXYZ;
+    _targetXYZ = {x,y,z};
+    _targetPWM = angleToPwm(g, a, b);
+
+    usleep(delay);
+
     return 0;
 }
 
@@ -108,6 +136,15 @@ bool SSRobot::isAlive() {
 }
 
 // --- PROTECTED METHODS --- //
+
+int SSRobot::biggestDifference(pwms_t a, pwms_t b) {
+    int x_diff, y_diff, z_diff, biggest_diff;
+    x_diff = abs(a.x - b.x);
+    y_diff = abs(a.y - b.y);
+    z_diff = abs(a.z - b.z);
+    biggest_diff = max(max(x_diff, y_diff), z_diff);
+    return biggest_diff;
+}
 
 //
 // Continuously executes in its own thread to update arm movements.

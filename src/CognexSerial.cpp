@@ -2,7 +2,7 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-12 23:20:18
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-18 22:31:44
+* @Last Modified time: 2016-05-19 19:27:26
 */
 
 #include <stdio.h>
@@ -111,7 +111,7 @@ void CognexSerial::getKeypoints(double keypoints[][2]) {
     unsorted_keypoints[i][0] = keypoints[i][0];
     unsorted_keypoints[i][1] = keypoints[i][1];
   }
-  sortKeypoints(keypoints);
+  //sortKeypoints(keypoints);
 
   printf("CALIBRATED NEW KEYPOINTS\n");
   for(int j = 0; j < 8; j++) {
@@ -203,12 +203,14 @@ void CognexSerial::search(double* delay){
 }
 void CognexSerial::setKeypoint(double keypoints[][2], int idx){
   char buffer[256];
+  /*
   for(int i = 0; i < 8; i++){
     if(keypoints[idx][0] == unsorted_keypoints[i][0] && keypoints[idx][1] == unsorted_keypoints[i][1]){
       idx = i;
       break;
     }
   }
+  */
 
   sprintf(buffer, "SI%c%03d%d", 'N', 9, idx);
   writeLine(buffer);

@@ -8,6 +8,7 @@ class FishingRobot : public SSRobot{
         FishingRobot();
         ~FishingRobot();
         void grab();
+        void grab(int idx);
         void toss();
         void shake();
 
