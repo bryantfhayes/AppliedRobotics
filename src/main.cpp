@@ -2,7 +2,7 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-12 23:20:03
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-20 01:00:30
+* @Last Modified time: 2016-05-22 21:42:46
 */
 
 //TODO: Add comments to functions
@@ -30,7 +30,7 @@
 
 //TODO: Counting increases even when Bad Servo Value achieved
 
-
+#define TRIGGER_PIN 13
 
 // MACRO FUNCTIONS
 #define DEBUG(x) do { std::cerr << x; } while (0)
@@ -60,7 +60,7 @@ void cleanExit();
 using namespace std;
 
 enum state_t {
-    idle, calibrate_arm, calibrate_cam, custom, fish_random, fish_smart
+    idle, calibrate_arm, calibrate_cam, custom, fish_random, fish_smart, ready
 };
 
 enum com_mode_t {
@@ -80,6 +80,7 @@ CognexSerial* cognexCom;
 state_t curr_state = idle;
 state_t last_state = curr_state;
 double keypoints[8][2];
+mraa::Gpio* triggerPin;
 
 //
 // Idle Function
@@ -131,6 +132,16 @@ void calibrate_cam_state_func() {
 void custom_state_func() {
     DEBUG("Entering custom state\n");
     while(curr_state == custom && !gameover) {}
+}
+
+void ready_state_func() {
+    DEBUG("Entering ready state\n");
+    while(curr_state == ready && !gameover) {
+        if (triggerPin->read() == 0) {
+            fprintf(stdout,"Switching to GAME MODE\n");
+            curr_state = idle;
+        }
+    }
 }
 
 //
@@ -256,7 +267,8 @@ void* updateState(void* data) {
                               calibrate_cam_state_func, 
                               custom_state_func, 
                               fish_random_state_func, 
-                              fish_smart_state_func};
+                              fish_smart_state_func,
+                              ready_state_func};
     void (* fn)(void);
     while(!gameover) {
         fn = state[curr_state];
@@ -368,8 +380,11 @@ void getCommand(){
     }  else if(cmd == "shake") {
         acknowledge();
         robot->shake();
-    } else if ("hello") {
+    } else if (cmd == "hello") {
         acknowledge();
+    } else if (cmd == "ready") {
+        last_state = curr_state;
+        curr_state = ready;
     }
 
     return;
@@ -426,7 +441,11 @@ int setupEnvironment(int argc, char* argv[]){
 int setupComs(){
   com = EdisonComm::initComm((int)mode);
   cognexCom = new CognexSerial;
-  return 0;
+  if(com == NULL || cognexCom == NULL) {
+    return 1;
+  } else {
+    return 0;
+  }
 }
 
 //
@@ -435,6 +454,19 @@ int setupComs(){
 int setupInterrupts() {
     // Catch CTRL-C interrupt
     signal(SIGINT, sig_handler);
+    // Also setup trigger pin
+    triggerPin = new mraa::Gpio(TRIGGER_PIN);
+    if (triggerPin == NULL) {
+        return 1;
+    }
+    int response = triggerPin->dir(mraa::DIR_IN);
+    if (response != MRAA_SUCCESS) {
+        return 1;
+    }
+    response = triggerPin->mode(mraa::MODE_PULLUP);
+    if (response != MRAA_SUCCESS) {
+        return 1;
+    }
     return 0;
 }
 
