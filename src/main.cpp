@@ -2,7 +2,7 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-12 23:20:03
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-22 21:42:46
+* @Last Modified time: 2016-05-23 17:42:38
 */
 
 //TODO: Add comments to functions
@@ -11,6 +11,7 @@
 //TODO: Add logging and change printf's to EdisonComm class method
 //TODO: Make sure camera orientation lines up with arm calibration @mechanical
 //TODO: Get version 1 of the app working
+//TODO: Counting increases even when Bad Servo Value achieved
 
 #include <unistd.h>
 #include <signal.h>
@@ -28,7 +29,7 @@
 #include "BHUtils.h"
 #include "FishingRobot.h"
 
-//TODO: Counting increases even when Bad Servo Value achieved
+
 
 #define TRIGGER_PIN 13
 
@@ -45,6 +46,7 @@ void calibrate_cam_state_func();
 void custom_state_func();
 void fish_smart_state_func();
 void fish_random_state_func();
+void ready_state_func();
 void loadCalibration(double keypoints[][2]);
 void saveCalibration(double keypoints[][2]);
 void* updateState(void* data);
@@ -77,10 +79,18 @@ bool gameover = false;
 bool keypointsReceived = false;
 EdisonComm* com;
 CognexSerial* cognexCom;
-state_t curr_state = idle;
-state_t last_state = curr_state;
+static state_t curr_state = idle;
+static state_t last_state = curr_state;
 double keypoints[8][2];
 mraa::Gpio* triggerPin;
+
+void triggerLowInterrupt(void* args) {
+    if(curr_state == fish_smart) {
+        DEBUG("Disabling fish_smart mode\n");
+        curr_state = ready;
+        cognexCom->gameover = true;
+    }
+}
 
 //
 // Idle Function
@@ -135,11 +145,12 @@ void custom_state_func() {
 }
 
 void ready_state_func() {
-    DEBUG("Entering ready state\n");
+    robot->enable(true);
+    robot->setPosition(-13, 22, -16);
     while(curr_state == ready && !gameover) {
         if (triggerPin->read() == 0) {
             fprintf(stdout,"Switching to GAME MODE\n");
-            curr_state = idle;
+            curr_state = fish_smart;
         }
     }
 }
@@ -154,32 +165,48 @@ void fish_smart_state_func() {
     int idx = 1;
     int numOfAttempts = 1;
     double delay = 0.0;
+    char buffer[255];
+
+    com->writeLine("state:fish_smart");
+
     while(curr_state == fish_smart && !gameover) {
         robot->setPosition(keypoints[idx][0], keypoints[idx][1], upVal);
         //usleep(1000000);
         cognexCom->setKeypoint(keypoints, idx);
         for(int attempt = 0; attempt < numOfAttempts; attempt++){
-            if(curr_state != fish_smart) return;
+            // Send keypoint update
+            sprintf(buffer, "info:Attempting to fish keypoint #%d\n", idx);
+            com->writeLine(buffer);
+            // Send speed update
+            sprintf(buffer, "speed:%lf", delay);
+            com->writeLine(buffer);
+            if(curr_state != fish_smart) break;
             robot->setPosition(keypoints[idx][0], keypoints[idx][1], upVal);
-            usleep((rand() % 3 + 2) * 500000);
+            usleep(3000000);
             cognexCom->search(&delay);
-
+            if(curr_state != fish_smart) break;
             // Flush buffer if error in response
             if ((delay*1000 - 100000) > 1){
                 usleep((delay*1000 - 100000));
             } else {
                 cognexCom->flushInput();
             }
-            
+            if(curr_state != fish_smart) break;
             robot->grab(idx);
             robot->toss();
         }
-        while ((++idx > 7) || (keypoints[idx][1] < 33.0) || (keypoints[idx][1] > 47.0)) {
+        while (((++idx > 7) || (keypoints[idx][1] < 33.0) || (keypoints[idx][1] > 47.0)) && curr_state == fish_smart) {
             if(idx >= 8) {
                 idx = 0;
             }
         }
     }
+
+    com->writeLine("state:ready");
+
+    // Clear input buffer and resume operation
+    cognexCom->flushInput();
+    cognexCom->gameover = false;
 }
 
 //
@@ -283,8 +310,12 @@ void* updateState(void* data) {
 void sig_handler(int signo) {
     if (signo == SIGINT) {
         DEBUG("[SHUT DOWN]\n");
-        if(com != NULL) 
+        if(com != NULL) {
             com->gameover = true;
+        }
+        if(cognexCom != NULL){
+            cognexCom->gameover = true;
+        }
         gameover = true;
     }
 }
@@ -296,9 +327,9 @@ void usage() {
     //TODO: Add usage/help menu
 }
 
-void acknowledge() {
+void acknowledge(string cmd) {
     char buffer[32];
-    sprintf(buffer, "ok");
+    sprintf(buffer, "%s,ok",cmd.c_str());
     com->writeLine(buffer);
 }
 
@@ -331,14 +362,11 @@ void getCommand(){
     } else if(cmd == "calibrate_arm") {
         last_state = curr_state;
         curr_state = calibrate_arm;
-        acknowledge();
     } else if(cmd == "calibrate_cam") {
         last_state = curr_state;
         curr_state = calibrate_cam;
-        acknowledge();
     } else if (cmd == "idle"){
         curr_state = idle;
-        acknowledge();
     } else if(cmd == "custom") {
         last_state = curr_state;
         curr_state = custom;
@@ -366,10 +394,8 @@ void getCommand(){
             return;
         }
     } else if(cmd == "toss") {
-        acknowledge();
         robot->toss();
     } else if(cmd == "grab") {
-        acknowledge();
         robot->grab(); 
     } else if(cmd == "load_calibration") {
         loadCalibration(keypoints);
@@ -378,14 +404,17 @@ void getCommand(){
     } else if(cmd == "help") {
         usage();
     }  else if(cmd == "shake") {
-        acknowledge();
         robot->shake();
     } else if (cmd == "hello") {
-        acknowledge();
+        DEBUG("Connection received\n");
     } else if (cmd == "ready") {
         last_state = curr_state;
         curr_state = ready;
+    } else {
+        return;
     }
+
+    acknowledge(cmd);
 
     return;
 }
@@ -467,6 +496,9 @@ int setupInterrupts() {
     if (response != MRAA_SUCCESS) {
         return 1;
     }
+    // Setup ISR trigger on rising edge
+    triggerPin->isr(mraa::EDGE_RISING, &triggerLowInterrupt, NULL);
+
     return 0;
 }
 

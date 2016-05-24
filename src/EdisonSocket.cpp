@@ -2,7 +2,7 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-06 23:17:40
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-18 02:33:37
+* @Last Modified time: 2016-05-23 13:36:49
 */
 
 #include <stdlib.h>
@@ -77,7 +77,7 @@ void EdisonSocket::readLine(void){
     }
 }
 
-void EdisonSocket::writeLine(char* msg){
+void EdisonSocket::writeLine(const char* msg){
     sprintf(sendBuffer, msg);
     if (clientIP == "") {
         fprintf(stderr, "No target IP\n");

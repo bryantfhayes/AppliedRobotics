@@ -2,7 +2,7 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-07 17:14:25
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-14 18:19:19
+* @Last Modified time: 2016-05-23 13:45:00
 */
 
 #include <stdio.h>
@@ -70,7 +70,7 @@ void EdisonSerial::readLine(void){
    }
 }
 
-void EdisonSerial::writeLine(char* msg){
+void EdisonSerial::writeLine(const char* msg){
     char message[MAX_MSG_SIZE];
     sprintf(message, "%s\r", msg);
     //printf("sending: %s with message length %d\n", message, strlen(message));

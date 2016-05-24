@@ -15,7 +15,7 @@ class EdisonComm{
         char recvBuffer[MAX_MSG_SIZE];
         char sendBuffer[MAX_MSG_SIZE];
         virtual void readLine(void)  = 0;
-        virtual void writeLine(char*) = 0;
+        virtual void writeLine(const char*) = 0;
         static EdisonComm* initComm(int);
 };
 

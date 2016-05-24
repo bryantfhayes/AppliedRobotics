@@ -2,7 +2,7 @@
 * @Author: Bryant Hayes
 * @Date:   2016-05-06 23:17:23
 * @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-14 18:19:41
+* @Last Modified time: 2016-05-23 13:44:53
 */
 
 #include <stdio.h>
@@ -23,6 +23,6 @@ void EdisonConsole::readLine(void){
    cin >> recvBuffer;
 }
 
-void EdisonConsole::writeLine(char* msg){
+void EdisonConsole::writeLine(const char* msg){
     fprintf(stdout, "%s\n", msg);
 }
