@@ -1,8 +1,8 @@
 /*
 * @Author: Bryant Hayes
 * @Date:   2016-05-12 23:20:03
-* @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-23 17:42:38
+* @Last Modified by:   bryanthayes
+* @Last Modified time: 2016-05-25 19:36:18
 */
 
 //TODO: Add comments to functions
@@ -83,6 +83,17 @@ static state_t curr_state = idle;
 static state_t last_state = curr_state;
 double keypoints[8][2];
 mraa::Gpio* triggerPin;
+mraa::Gpio* fishPin;
+static bool lookForFish = false;
+static int fishCount = 0;
+bool keypointsEnabledArr[8] = {true, true, true, true, true, true, true, true};
+
+
+void fishInterrupt(void* args) {
+    if (curr_state == fish_smart && lookForFish) {
+        fishCount++;
+    }
+}
 
 void triggerLowInterrupt(void* args) {
     if(curr_state == fish_smart) {
@@ -108,7 +119,7 @@ void idle_state_func() {
 void calibrate_arm_state_func() {
     DEBUG("Entering calibrate arm state\n");
     robot->enable(true);
-    robot->setPosition(0, 39, -21);
+    robot->setPosition(0, 39, -22);
     while(curr_state == calibrate_arm && !gameover){}
     return;
 }
@@ -161,11 +172,12 @@ void ready_state_func() {
 void fish_smart_state_func() {
     DEBUG("Entering fish smart state\n");
     robot->enable(true);
-    int upVal = -19;
+    int upVal = -21;
     int idx = 1;
     int numOfAttempts = 1;
     double delay = 0.0;
     char buffer[255];
+    double extra_delay[8] = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
 
     com->writeLine("state:fish_smart");
 
@@ -186,16 +198,26 @@ void fish_smart_state_func() {
             cognexCom->search(&delay);
             if(curr_state != fish_smart) break;
             // Flush buffer if error in response
-            if ((delay*1000 - 100000) > 1){
-                usleep((delay*1000 - 100000));
+            if ((delay*1000 - 50000 + extra_delay[idx]) > 1){
+                usleep((delay*1000 - 50000 + extra_delay[idx]));
             } else {
                 cognexCom->flushInput();
             }
             if(curr_state != fish_smart) break;
             robot->grab(idx);
-            robot->toss();
+            lookForFish = true;
+            robot->setFishPosition();
+            usleep(500000);
+            if(fishCount >= 2) {
+                fprintf(stdout, "fish detected!\n");
+                robot->shake();
+            } else {
+                fprintf(stdout, "no fish detected!\n");
+            }
+            lookForFish = false;
+            fishCount = 0;
         }
-        while (((++idx > 7) || (keypoints[idx][1] < 33.0) || (keypoints[idx][1] > 47.0)) && curr_state == fish_smart) {
+        while (((++idx > 7) || !keypointsEnabledArr[idx]) && curr_state == fish_smart) {
             if(idx >= 8) {
                 idx = 0;
             }
@@ -227,7 +249,8 @@ void fish_random_state_func() {
             //interval = rand() % 3 + 1; // 3 to 7 seconds
             usleep(interval * 1000000);
             robot->grab();
-            robot->toss();
+            robot->setFishPosition();
+            robot->shake();
         }
         idx++;
         if(idx >= 8) {
@@ -367,6 +390,8 @@ void getCommand(){
         curr_state = calibrate_cam;
     } else if (cmd == "idle"){
         curr_state = idle;
+    } else if (cmd == "check_fish") {
+        robot->setFishPosition();
     } else if(cmd == "custom") {
         last_state = curr_state;
         curr_state = custom;
@@ -403,13 +428,31 @@ void getCommand(){
         saveCalibration(keypoints);
     } else if(cmd == "help") {
         usage();
-    }  else if(cmd == "shake") {
+    } else if (cmd == "has_fish") {
+        fprintf(stdout, "has fish?: %s\n", fishCount >= 2 ? "YES" : "NO");
+    } else if(cmd == "shake") {
         robot->shake();
     } else if (cmd == "hello") {
         DEBUG("Connection received\n");
+        fprintf(stdout, "Set Online Return Value: %d\n", cognexCom->setOnline(true));
     } else if (cmd == "ready") {
         last_state = curr_state;
         curr_state = ready;
+    } else if (cmd == "test_keypoints") {
+        if (keypointsReceived) {
+            for (int i = 0; i < 8; i++) {
+                robot->setPosition(keypoints[i][0], keypoints[i][1], -20, 6000000);
+            }
+        }
+        
+    } else if (cmd == "custom_keypoints") {
+        fprintf(stdout, "New keypoints enabled array = {");
+        for (int i = 1; i < input.size(); i++) {
+            int val = stoi(input.at(i));
+            keypointsEnabledArr[i-1] = val;
+            fprintf(stdout, "%d,", val);
+        }
+        fprintf(stdout, "}\n");
     } else {
         return;
     }
@@ -498,6 +541,22 @@ int setupInterrupts() {
     }
     // Setup ISR trigger on rising edge
     triggerPin->isr(mraa::EDGE_RISING, &triggerLowInterrupt, NULL);
+
+
+    fishPin = new mraa::Gpio(12);
+    if (fishPin == NULL) {
+        return 1;
+    }
+    response = fishPin->dir(mraa::DIR_IN);
+    if (response != MRAA_SUCCESS) {
+        return 1;
+    }
+    response = fishPin->mode(mraa::MODE_PULLUP);
+    if (response != MRAA_SUCCESS) {
+        return 1;
+    }
+    // Setup ISR trigger on falling edge
+    fishPin->isr(mraa::EDGE_FALLING, &fishInterrupt, NULL);
 
     return 0;
 }

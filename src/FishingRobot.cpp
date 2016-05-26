@@ -1,8 +1,8 @@
 /*
 * @Author: Bryant Hayes
 * @Date:   2016-05-14 19:02:35
-* @Last Modified by:   Bryant Hayes
-* @Last Modified time: 2016-05-19 20:47:44
+* @Last Modified by:   bryanthayes
+* @Last Modified time: 2016-05-25 01:51:01
 */
 
 #include <iostream>
@@ -29,6 +29,7 @@ FishingRobot::~FishingRobot(){
 //
 void FishingRobot::toss() {
 	int lastSpeed = _armSpeed;
+	setPosition(0,35,-15);
     _armSpeed = 100;
     setPosition(-25,25,-10);
     //usleep(500000);
@@ -60,9 +61,9 @@ void FishingRobot::grab(int idx) {
 	int lastSpeed = _armSpeed;
 	_armSpeed = 99;
 	if(idx == 4 || idx == 5) {
-		setPosition(_targetXYZ.x, _targetXYZ.y, -24, 500000);
+		setPosition(_targetXYZ.x, _targetXYZ.y, -24, 1000000);
 	} else {
-		setPosition(_targetXYZ.x, _targetXYZ.y, -24, 320000);
+		setPosition(_targetXYZ.x, _targetXYZ.y, -24, 400000);
 	}
 	//usleep(1500000-_armSpeed*10000);
 	_armSpeed = lastSpeed;
@@ -73,33 +74,38 @@ void FishingRobot::grab(int idx) {
 
 void FishingRobot::shake(){
 	int lastSpeed = _armSpeed;
-	_armSpeed = 50;
-	double x = _targetXYZ.x;
-	double y = _targetXYZ.y;
-	double z = _targetXYZ.z;
-	setPosition(x,y,-14);
-	//usleep(1200000);
-	_armSpeed = 80;
+	double shake_x = -25.0;
+	double shake_y = 20.0;
+	double shake_z_up = -14.0;
+	double shake_z_down = -23;
+	double shake_amount = 1.5;
+	double previous_x = _targetXYZ.x;
+	double previous_y = _targetXYZ.y;
+	double previous_z = _targetXYZ.z;
+
+	_armSpeed = 75;
+	setPosition(previous_x,previous_y,shake_z_up);
+	_armSpeed = 90;
 	usleep(20000);
-	setPosition(-16.5,30,-14);
-	//usleep(1200000);
-	setPosition(-16.5,30,-21);
-	//usleep(1000000);
+	setPosition(shake_x,shake_y,shake_z_up,1250000);
+	setPosition(shake_x,shake_y,shake_z_down,1000000);
 	_armSpeed = 100;
 	for(int i = 0; i < 2; i++){
-		setPosition(-15,30,-21);
-		//usleep(250000);
-		setPosition(-18,30,-21);
-		//usleep(250000);
+		setPosition(shake_x-shake_amount,shake_y-shake_amount,shake_z_down);
+		setPosition(shake_x+shake_amount,shake_y+shake_amount,shake_z_down);
 	}
-	setPosition(-16.5,30,-15);
-	//usleep(1000000);
-	_armSpeed = 100;
-	usleep(50000);
-	setPosition(x,y,z);
-	//usleep(400000);
+	_armSpeed = 99;
+	usleep(20000);
+	setPosition(shake_x,shake_y,shake_z_up);
+	setPosition(previous_x,previous_y,previous_z);
+
 	_armSpeed = lastSpeed;
-	usleep(50000);
+	usleep(20000);
+}
+
+void FishingRobot::setFishPosition() {
+	setPosition(-13.5,30,-16.25,3000000);
+	return;
 }
 
 

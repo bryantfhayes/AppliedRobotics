@@ -11,7 +11,7 @@ class FishingRobot : public SSRobot{
         void grab(int idx);
         void toss();
         void shake();
-
+        void setFishPosition();
         double boardAngle;
 };
 
