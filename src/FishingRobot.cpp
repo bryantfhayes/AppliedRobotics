@@ -1,8 +1,8 @@
 /*
 * @Author: Bryant Hayes
 * @Date:   2016-05-14 19:02:35
-* @Last Modified by:   bryanthayes
-* @Last Modified time: 2016-05-25 01:51:01
+* @Last Modified by:   Bryant Hayes
+* @Last Modified time: 2016-05-29 23:21:11
 */
 
 #include <iostream>
@@ -60,15 +60,15 @@ void FishingRobot::grab() {
 void FishingRobot::grab(int idx) {
 	int lastSpeed = _armSpeed;
 	_armSpeed = 99;
-	if(idx == 4 || idx == 5) {
-		setPosition(_targetXYZ.x, _targetXYZ.y, -24, 1000000);
+	if(idx == 2 || idx == 3 || idx == 6) {
+		setPosition(_targetXYZ.x, _targetXYZ.y, -24, 900000);
 	} else {
-		setPosition(_targetXYZ.x, _targetXYZ.y, -24, 400000);
+		setPosition(_targetXYZ.x, _targetXYZ.y, -24, 450000);
 	}
 	//usleep(1500000-_armSpeed*10000);
 	_armSpeed = lastSpeed;
 	//usleep(300000);
-	setPosition(_lastXYZ.x, _lastXYZ.y, _lastXYZ.z);
+	//setPosition(_lastXYZ.x, _lastXYZ.y, _lastXYZ.z);
 	//usleep(1000000);
 }
 
@@ -84,7 +84,7 @@ void FishingRobot::shake(){
 	double previous_z = _targetXYZ.z;
 
 	_armSpeed = 75;
-	setPosition(previous_x,previous_y,shake_z_up);
+	setPosition(previous_x,previous_y,shake_z_up,1000000);
 	_armSpeed = 90;
 	usleep(20000);
 	setPosition(shake_x,shake_y,shake_z_up,1250000);
@@ -104,7 +104,9 @@ void FishingRobot::shake(){
 }
 
 void FishingRobot::setFishPosition() {
-	setPosition(-13.5,30,-16.25,3000000);
+	setPosition(_targetXYZ.x,_targetXYZ.y,-14,2000000);
+	setPosition(-12,35,-16.5,1750000);
+    setPosition(-13.25,28,-16.5,1250000);
 	return;
 }
 

@@ -1,8 +1,8 @@
 /*
 * @Author: Bryant Hayes
 * @Date:   2016-05-12 23:20:03
-* @Last Modified by:   bryanthayes
-* @Last Modified time: 2016-05-25 19:36:18
+* @Last Modified by:   Bryant Hayes
+* @Last Modified time: 2016-05-29 23:01:11
 */
 
 //TODO: Add comments to functions
@@ -31,7 +31,7 @@
 
 
 
-#define TRIGGER_PIN 13
+#define TRIGGER_PIN 12
 
 // MACRO FUNCTIONS
 #define DEBUG(x) do { std::cerr << x; } while (0)
@@ -86,16 +86,18 @@ mraa::Gpio* triggerPin;
 mraa::Gpio* fishPin;
 static bool lookForFish = false;
 static int fishCount = 0;
-bool keypointsEnabledArr[8] = {true, true, true, true, true, true, true, true};
+bool keypointsEnabledArr[8] = {true, true, true, true, true, true, true, false};
 
 
 void fishInterrupt(void* args) {
+    //DEBUG("fish isr triggered\n");
     if (curr_state == fish_smart && lookForFish) {
         fishCount++;
     }
 }
 
 void triggerLowInterrupt(void* args) {
+    DEBUG("ISR Triggered\n");
     if(curr_state == fish_smart) {
         DEBUG("Disabling fish_smart mode\n");
         curr_state = ready;
@@ -108,6 +110,7 @@ void triggerLowInterrupt(void* args) {
 //
 void idle_state_func() {
     DEBUG("Entering idle state\n");
+    robot->setPosition(-15,25,-15,2500000);
     robot->enable(false);
     while(curr_state == idle && !gameover){}
     return;
@@ -177,7 +180,7 @@ void fish_smart_state_func() {
     int numOfAttempts = 1;
     double delay = 0.0;
     char buffer[255];
-    double extra_delay[8] = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+    double extra_delay[8] = {0.0,0.0,0.0,0.0,25000.0,0.0,0.0,0.0};
 
     com->writeLine("state:fish_smart");
 
@@ -541,9 +544,10 @@ int setupInterrupts() {
     }
     // Setup ISR trigger on rising edge
     triggerPin->isr(mraa::EDGE_RISING, &triggerLowInterrupt, NULL);
+    
+    printf("pin = %s\n", triggerPin->read() ? "HIGH" : "LOW");
 
-
-    fishPin = new mraa::Gpio(12);
+    fishPin = new mraa::Gpio(11);
     if (fishPin == NULL) {
         return 1;
     }
